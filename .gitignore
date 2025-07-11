@@ -1,0 +1,12 @@
+venv/
+__pycache__/
+*.pyc
+
+# macOS
+.DS_Store
+
+# editor backups / lock-files
+*~
+.*.txt#
+
+
