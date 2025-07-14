@@ -71,16 +71,22 @@ def build_contratto(data: dict) -> BytesIO:
         leftMargin=2*cm, rightMargin=2*cm,
         topMargin=2*cm, bottomMargin=2*cm
     )
-    e = []
-    # Шапка
-    e.append(Paragraph("Intesa Sanpaolo S.p.A.", s["Header"]))
-    e.append(Paragraph("Sede legale: Piazza San Carlo, 156 – 10121 Torino", s["Body"]))
-    e.append(Paragraph("Capitale sociale € 10.368.870.930,08 – P.IVA 10810700015", s["Body"]))
-    e.append(Paragraph("Registro Imprese di Torino – ABI 03069.9", s["Body"]))
-    e.append(Spacer(1, 12))
-    e.append(Paragraph(f"<b>Cliente:</b> {data['name']}", s["Body"]))
-    e.append(Spacer(1, 8))
-    # Таблица
+    elems = []
+    # Логотип
+    if os.path.exists(LOGO_PATH):
+        elems.append(Image(LOGO_PATH, width=4*cm, height=4*cm))
+        elems.append(Spacer(1, 12))
+    # Заголовок
+    elems.append(Paragraph("<b>CONTRATTO DI CREDITO</b>", s["Header"]))
+    elems.append(Spacer(1, 10))
+    # Дата и место
+    today = datetime.now().strftime("%d/%m/%Y")
+    elems.append(Paragraph(f"Luogo e data: Milano, {today}", s["Body"]))
+    elems.append(Spacer(1, 8))
+    # Данные клиента
+    elems.append(Paragraph(f"<b>Cliente:</b> {data['name']}", s["Body"]))
+    elems.append(Spacer(1, 8))
+    # Основная таблица с условиями
     tbl_data = [
         ["Voce", "Dettagli"],
         ["Importo richiesto", money(data['amount'])],
@@ -100,45 +106,47 @@ def build_contratto(data: dict) -> BytesIO:
         ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
         ("ALIGN", (0, 0), (-1, 0), "CENTER")
     ]))
-    e.extend([tbl, Spacer(1, 10)])
-    # Agevolazioni
-    e.append(Paragraph("<b>Agevolazioni</b>", s["Body"]))
-    e.append(Paragraph(
-        "1. Pausa pagamenti fino a 3 rate consecutive.<br/>"
-        "2. Estinzione anticipata senza penali.<br/>"
-        "3. Riduzione TAN: −0,10 p.p. ogni 12 rate puntuali (fino a 6,50 %).<br/>"
-        "4. CashBack 1 % su ogni rata versata.<br/>"
-        "5. “Financial Navigator” gratuito per 12 mesi.<br/>"
-        "6. SEPA gratuiti, SDD senza costi né mora.", s["Body"]
-    ))
-    e.append(Spacer(1, 6))
-    # Penali
-    e.append(Paragraph("<b>Penali e interessi di mora</b>", s["Body"]))
-    e.append(Paragraph(
-        "− Ritardo > 5 giorni: mora = TAN + 2 p.p.<br/>"
-        "− Sollecito: 10 € cartaceo / 5 € digitale.<br/>"
-        "− 2 rate non pagate = decadenza termine e recupero.<br/>"
-        "− Polizza revocata = obbligo ripristino in 15 giorni.", s["Body"]
-    ))
-    e.append(Spacer(1, 6))
-    # Comunicazioni
-    e.append(Paragraph("<b>Comunicazioni tramite 1capital S.r.l.</b>", s["Body"]))
-    e.append(Paragraph("Tutte le comunicazioni saranno gestite da 1capital S.r.l. Contatto: Telegram @manager_1capital", s["Body"]))
-    e.append(Spacer(1, 10))
+    elems.extend([tbl, Spacer(1, 10)])
+    # Основной текст договора (примерная структура, адаптировать под шаблон)
+    elems.append(Paragraph("<b>Condizioni principali del finanziamento</b>", s["Body"]))
+    elems.append(Spacer(1, 6))
+    elems.append(Paragraph(
+        "Il presente contratto disciplina le condizioni di erogazione del credito tra Intesa Sanpaolo S.p.A. e il Cliente sopra indicato. "
+        "L'importo richiesto sarà erogato secondo le condizioni riportate nella tabella sopra. Il Cliente si impegna a rimborsare l'importo tramite rate mensili costanti, come indicato. "
+        "Il tasso di interesse applicato è fisso per tutta la durata del contratto. Nessuna penale è prevista per l'estinzione anticipata."
+        , s["Body"])
+    )
+    elems.append(Spacer(1, 6))
+    elems.append(Paragraph(
+        "<b>Agevolazioni e servizi aggiuntivi</b><br/>"
+        "- Pausa pagamenti fino a 3 rate consecutive.<br/>"
+        "- Riduzione TAN: −0,10 p.p. ogni 12 rate puntuali (fino a 6,50 %).<br/>"
+        "- CashBack 1 % su ogni rata versata.<br/>"
+        "- “Financial Navigator” gratuito per 12 mesi.<br/>"
+        "- SEPA gratuiti, SDD senza costi né mora.", s["Body"])
+    )
+    elems.append(Spacer(1, 6))
+    elems.append(Paragraph(
+        "<b>Penali e interessi di mora</b><br/>"
+        "- Ritardo > 5 giorni: mora = TAN + 2 p.p.<br/>"
+        "- Sollecito: 10 € cartaceo / 5 € digitale.<br/>"
+        "- 2 rate non pagate = decadenza termine e recupero.<br/>"
+        "- Polizza revocata = obbligo ripristino in 15 giorni.", s["Body"])
+    )
+    elems.append(Spacer(1, 6))
+    elems.append(Paragraph(
+        "<b>Comunicazioni tramite 1capital S.r.l.</b><br/>"
+        "Tutte le comunicazioni saranno gestite da 1capital S.r.l. Contatto: Telegram @manager_1capital", s["Body"])
+    )
+    elems.append(Spacer(1, 10))
     # Подписи
-    # Автоматическая дата
-    from datetime import datetime
-    today = datetime.now().strftime("%d/%m/%Y")
-    e.append(Paragraph(f"Luogo e data: Milano, {today}", s["Body"]))
-    e.append(Spacer(1, 6))
-    # Вставка подписи
     if os.path.exists(SIGNATURE_PATH):
-        e.append(Image(SIGNATURE_PATH, width=6*cm, height=3*cm))
-        e.append(Spacer(1, 6))
-    e.append(Paragraph("Firma del rappresentante Intesa Sanpaolo", s["Body"]))
-    e.append(Spacer(1, 10))
-    e.append(Paragraph("Firma del Cliente: ________________________________________________", s["Body"]))
-    doc.build(e)
+        elems.append(Image(SIGNATURE_PATH, width=6*cm, height=3*cm))
+        elems.append(Spacer(1, 6))
+    elems.append(Paragraph("Firma del rappresentante Intesa Sanpaolo", s["Body"]))
+    elems.append(Spacer(1, 10))
+    elems.append(Paragraph("Firma del Cliente: ________________________________________________", s["Body"]))
+    doc.build(elems)
     buf.seek(0)
     return buf
 
