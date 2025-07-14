@@ -205,6 +205,8 @@ def build_contratto(data: dict) -> BytesIO:
             y = 0
             self.canv.setLineWidth(1)
             self.canv.line(0, y, self.line_width, y)
+    uc_text = "Firma del rappresentante UniCredit"
+    cl_text = "Firma del Cliente:"
     # Представитель UniCredit
     elems.append(Spacer(1, 32))
     sign_table = Table([
