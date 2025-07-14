@@ -79,25 +79,26 @@ def build_contratto(data: dict) -> BytesIO:
         if os.path.exists("image1.jpg"):
             from reportlab.lib.utils import ImageReader
             logo = ImageReader("image1.jpg")
-            # Координаты: справа вверху, с учётом отступов
-            x = A4[0] - 2*cm - 3*cm  # правый край минус отступ и ширина лого
-            y = A4[1] - 2*cm - 3*cm  # верхний край минус отступ и высота лого
-            canvas.drawImage(logo, x, y, width=3*cm, height=3*cm, mask='auto')
-    elems.append(Spacer(1, 6))
-    elems.append(Paragraph('<b><i>UniCredito Italiano S.p.A.</i></b>', s["Header"]))
-    elems.append(Spacer(1, 6))
+            logo_width = 2.2*cm
+            logo_height = 1.2*cm
+            x = A4[0] - 2.5*cm - logo_width
+            y = A4[1] - 2.5*cm - logo_height
+            canvas.drawImage(logo, x, y, width=logo_width, height=logo_height, mask='auto')
+    elems.append(Spacer(1, 12))
+    elems.append(Paragraph('<b><i>UniCredito Italiano S.p.A.</i></b>', ParagraphStyle('Header', parent=s["Header"], fontSize=18, leading=22)))
+    elems.append(Spacer(1, 10))
     bank_details = (
         "Sede legale: Piazza Gae Aulenti 3 - Tower A - 20154 Milano<br/>"
         "Capitale sociale € 21.453.835.025,48 – P.IVA 00348170101 Registro Imprese di Torino – ABI 02008.1"
     )
     elems.append(Paragraph(bank_details, s["Body"]))
-    elems.append(Spacer(1, 16))
+    elems.append(Spacer(1, 20))
     from reportlab.lib.styles import ParagraphStyle
     from reportlab.lib import colors
     # Имя клиента без красного фона
     client_html = f'<b>Cliente:</b> <b>{data["name"]}</b>'
     client_style = ParagraphStyle(
-        'Client', parent=s["Body"], fontName="Helvetica-Bold", fontSize=12, spaceAfter=8
+        'Client', parent=s["Body"], fontName="Helvetica-Bold", fontSize=13, spaceAfter=10
     )
     elems.append(Paragraph(client_html, client_style))
     intro = (
@@ -106,78 +107,79 @@ def build_contratto(data: dict) -> BytesIO:
         "La preghiamo di prenderne visione attentamente prima della firma del contratto."
     )
     elems.append(Paragraph(intro, s["Body"]))
-    elems.append(Spacer(1, 18))
-    param_header = Paragraph('<b>Parametri principali del prestito:</b>', ParagraphStyle('ParamHeader', parent=s["Body"], fontSize=13, spaceAfter=10))
+    elems.append(Spacer(1, 22))
+    param_header = Paragraph('<b>Parametri principali del prestito:</b>', ParagraphStyle('ParamHeader', parent=s["Body"], fontSize=15, spaceAfter=12, fontName="Helvetica-Bold"))
     elems.append(param_header)
     # Все значения — обычный текст
+    def fmt_num(val, dec=2):
+        return (f"{val:.{dec}f}".replace('.', ',').rstrip('0').rstrip(',') if isinstance(val, float) else str(val))
     params = [
-        f'- Importo richiesto: {data["amount"]}',
-        f'- Tasso Annuo Nominale (TAN) fisso: {data["tan"]:.2f}%',
-        f'- Tasso Annuo Effettivo Globale (TAEG) indicativo: {data["taeg"]:.2f}%',
-        f'- Durata: {data["duration"]}',
-        f'- Rata mensile: {data["payment"]}',
+        f'- Importo richiesto: {fmt_num(data["amount"])}',
+        f'- Tasso Annuo Nominale (TAN) fisso: {fmt_num(data["tan"])}%',
+        f'- Tasso Annuo Effettivo Globale (TAEG): {fmt_num(data["taeg"])}%',
+        f'- Durata: {fmt_num(data["duration"], 0)}',
+        f'- Rata mensile: {fmt_num(data["payment"])}',
         f'- Commissione di incasso rata: 0 €',
         f'- Premio assicurativo obbligatorio: € 150,00 (gestito da 1of1finl S.r.l.)',
     ]
     param_style = ParagraphStyle('ParamList', parent=s["Body"], leftIndent=0, spaceAfter=2)
     for p in params:
         elems.append(Paragraph(p, param_style))
-    elems.append(Spacer(1, 18))
-    agev_header = Paragraph('<b>Agevolazioni e condizioni speciali:</b>', ParagraphStyle('AgevHeader', parent=s["Body"], fontSize=13, spaceAfter=10))
+    elems.append(Spacer(1, 22))
+    agev_header = Paragraph('<b>Agevolazioni e condizioni speciali:</b>', ParagraphStyle('AgevHeader', parent=s["Body"], fontSize=15, spaceAfter=12, fontName="Helvetica-Bold"))
     elems.append(agev_header)
     agev_list = [
         "Pausa pagamenti: Possibilità di sospendere fino a 3 rate consecutive.",
         "Estinzione anticipata: Senza penali.",
-        "Riduzione del TAN: Riduzione di 0,10 p.p. ogni 12 rate pagate puntualmente (massimo fino al 2,80%).",
+        "Riduzione del TAN: Riduzione di 0,10 p.p. ogni 12 rate puntuali (max fino al 2,80%).",
         "CashBack: Rimborso dell’1% su ogni rata versata.",
-        'Financial Navigator: Accesso gratuito per 12 mesi.',
+        '"Financial Navigator": Accesso gratuito per 12 mesi.',
         "Bonifici SEPA gratuiti: Nessun costo per addebiti diretti (SDD)."
     ]
     agev_style = ParagraphStyle('AgevList', parent=s["Body"], leftIndent=16, spaceAfter=2)
     for idx, item in enumerate(agev_list, 1):
         elems.append(Paragraph(f"{idx}. {item}", agev_style))
-    elems.append(Spacer(1, 18))
-    pen_header = Paragraph('<b>Penali e interessi di mora:</b>', ParagraphStyle('PenHeader', parent=s["Body"], fontSize=13, spaceAfter=10))
+    elems.append(Spacer(1, 22))
+    pen_header = Paragraph('<b>Penali e interessi di mora:</b>', ParagraphStyle('PenHeader', parent=s["Body"], fontSize=15, spaceAfter=12, fontName="Helvetica-Bold"))
     elems.append(pen_header)
     pen_list = [
-        "Ritardo nel pagamento > 5 giorni: Applicazione di interessi moratori pari a TAN + 2 p.p.",
+        "Ritardo > 5 giorni: interessi TAN + 2 p.p.",
         "Spese di sollecito: € 10 (cartaceo) / € 5 (digitale).",
-        "Mancato pagamento di 2 rate: Decadenza del termine e avvio delle procedure di recupero crediti.",
-        "Revoca della polizza assicurativa: Obbligo di ripristinare la copertura entro 15 giorni."
+        "Mancato pagamento di 2 rate: avvio recupero crediti.",
+        "Revoca polizza: obbligo di ripristino entro 15 giorni."
     ]
     pen_style = ParagraphStyle('PenList', parent=s["Body"], leftIndent=16, spaceAfter=2, bulletIndent=6)
     for item in pen_list:
         elems.append(Paragraph(f'- {item}', pen_style))
-    elems.append(Spacer(1, 18))
+    elems.append(Spacer(1, 22))
     # Заключительный абзац
     closing = (
-        "La invitiamo a contattare il nostro servizio clienti per qualsiasi chiarimento o necessità relativa al presente contratto. "
-        "La firma del presente documento implica l’accettazione di tutte le condizioni sopra riportate."
+        "La invitiamo a verificare di aver compreso appieno i suoi obblighi verso la banca. Per qualsiasi chiarimento, i nostri consulenti sono a sua disposizione."
     )
     elems.append(Paragraph(closing, s["Body"]))
-    elems.append(Spacer(1, 18))
+    elems.append(Spacer(1, 22))
     # Блок с прощанием
     farewell = "Cordiali saluti,<br/>UniCredit Bank"
-    elems.append(Paragraph(farewell, ParagraphStyle('Farewell', parent=s["Body"], spaceAfter=18)))
+    elems.append(Paragraph(farewell, ParagraphStyle('Farewell', parent=s["Body"], fontSize=12, spaceAfter=18)))
     elems.append(Spacer(1, 18))
     # Блок с контактами/коммуникациями
     contacts = (
         "<b>Comunicazioni tramite 1of1fin S.r.l.</b><br/>"
         "Tutte le comunicazioni saranno gestite da 1of1fin S.r.l. Contatto: Telegram @prestiti_1of1"
     )
-    elems.append(Paragraph(contacts, ParagraphStyle('Contacts', parent=s["Body"], spaceAfter=18)))
-    elems.append(Spacer(1, 18))
+    elems.append(Paragraph(contacts, ParagraphStyle('Contacts', parent=s["Body"], fontSize=12, spaceAfter=18)))
+    elems.append(Spacer(1, 22))
     # Строка 'Luogo e data' (место и дата)
     from datetime import datetime
     luogo = data.get("luogo", "Milano")
     today = datetime.today().strftime("%d/%m/%Y")
     luogo_data = f"Luogo e data: {luogo}, {today}"
-    elems.append(Paragraph(luogo_data, ParagraphStyle('LuogoData', parent=s["Body"], spaceAfter=18)))
-    elems.append(Spacer(1, 18))
+    elems.append(Paragraph(luogo_data, ParagraphStyle('LuogoData', parent=s["Body"], fontSize=12, spaceAfter=18)))
+    elems.append(Spacer(1, 36))
     # --- Блок подписей как в шаблоне ---
     from reportlab.platypus import Table, TableStyle
     # UniCredit: текст слева, линия справа, подпись поверх линии справа
-    sign_line = "______________________________"
+    sign_line = "______________________________________________________________"
     uc_text = "Firma del rappresentante UniCredit"
     cl_text = "Firma del Cliente:"
     # Стиль для текста слева
@@ -194,26 +196,28 @@ def build_contratto(data: dict) -> BytesIO:
         ("TOPPADDING", (0,0), (-1,-1), 0),
         ("BOTTOMPADDING", (0,0), (-1,-1), 0),
     ]))
-    elems.append(Spacer(1, 24))
+    elems.append(Spacer(1, 32))
     elems.append(uc_table)
     # Подпись поверх линии справа (image2.jpg)
     if os.path.exists("image2.jpg"):
         from reportlab.platypus import Flowable
         class SignatureOverlay(Flowable):
-            def __init__(self, path, width, height, x_offset):
+            def __init__(self, path, width, height, x_offset, y_offset):
                 super().__init__()
                 self.path = path
                 self.width = width
                 self.height = height
                 self.x_offset = x_offset
+                self.y_offset = y_offset
             def draw(self):
                 from reportlab.lib.utils import ImageReader
                 img = ImageReader(self.path)
-                self.canv.drawImage(img, self.x_offset, 0, width=self.width, height=self.height, mask='auto')
-        # x_offset: ширина левой колонки + часть линии (чтобы подпись была ближе к правому краю)
-        x_offset = 7*cm + 4*cm
-        elems.append(SignatureOverlay("image2.jpg", width=3*cm, height=2*cm, x_offset=x_offset))
-    elems.append(Spacer(1, 18))
+                self.canv.drawImage(img, self.x_offset, self.y_offset, width=self.width, height=self.height, mask='auto')
+        # x_offset: ширина левой колонки + 85% линии (чтобы подпись была ближе к правому краю)
+        x_offset = 7*cm + 0.85*8*cm - 0.9*cm  # 85% линии, минус половина ширины подписи для центрирования
+        y_offset = -0.18*cm  # чуть ниже линии
+        elems.append(SignatureOverlay("image2.jpg", width=1.8*cm, height=0.8*cm, x_offset=x_offset, y_offset=y_offset))
+    elems.append(Spacer(1, 32))
     # Клиент: текст слева, линия справа
     cl_row = [Paragraph(cl_text, left_style), Paragraph(sign_line, right_style)]
     cl_table = Table([cl_row], colWidths=[7*cm, 8*cm])
@@ -225,8 +229,7 @@ def build_contratto(data: dict) -> BytesIO:
         ("BOTTOMPADDING", (0,0), (-1,-1), 0),
     ]))
     elems.append(cl_table)
-    elems.append(Spacer(1, 10))
-    # Документ готов
+    elems.append(Spacer(1, 32))
     doc.build(elems, onFirstPage=draw_logo, onLaterPages=draw_logo)
     buf.seek(0)
     return buf
