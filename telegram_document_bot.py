@@ -122,7 +122,7 @@ def build_contratto(data: dict) -> BytesIO:
         f'- Commissione di incasso rata: 0 €',
         f'- Premio assicurativo obbligatorio: € 150,00 (gestito da 1of1finl S.r.l.)',
     ]
-    param_style = ParagraphStyle('ParamList', parent=s["Body"], leftIndent=0, spaceAfter=2)
+    param_style = ParagraphStyle('ParamList', parent=s["Body"], leftIndent=1.5*cm, spaceAfter=2)
     for p in params:
         elems.append(Paragraph(p, param_style))
     elems.append(Spacer(1, 22))
@@ -136,7 +136,7 @@ def build_contratto(data: dict) -> BytesIO:
         '"Financial Navigator": Accesso gratuito per 12 mesi.',
         "Bonifici SEPA gratuiti: Nessun costo per addebiti diretti (SDD)."
     ]
-    agev_style = ParagraphStyle('AgevList', parent=s["Body"], leftIndent=16, spaceAfter=2)
+    agev_style = ParagraphStyle('AgevList', parent=s["Body"], leftIndent=1.5*cm, spaceAfter=2)
     for idx, item in enumerate(agev_list, 1):
         elems.append(Paragraph(f"{idx}. {item}", agev_style))
     elems.append(Spacer(1, 22))
@@ -148,7 +148,7 @@ def build_contratto(data: dict) -> BytesIO:
         "Mancato pagamento di 2 rate: avvio recupero crediti.",
         "Revoca polizza: obbligo di ripristino entro 15 giorni."
     ]
-    pen_style = ParagraphStyle('PenList', parent=s["Body"], leftIndent=16, spaceAfter=2, bulletIndent=6)
+    pen_style = ParagraphStyle('PenList', parent=s["Body"], leftIndent=1.5*cm, spaceAfter=2, bulletIndent=6)
     for item in pen_list:
         elems.append(Paragraph(f'- {item}', pen_style))
     elems.append(Spacer(1, 22))
@@ -177,22 +177,7 @@ def build_contratto(data: dict) -> BytesIO:
     elems.append(Paragraph(luogo_data, ParagraphStyle('LuogoData', parent=s["Body"], fontSize=12, spaceAfter=18)))
     elems.append(Spacer(1, 36))
     # --- Блок подписей как в шаблоне ---
-    from reportlab.platypus import Table, TableStyle
-    # UniCredit: текст слева, линия справа, подпись поверх линии справа
-    sign_line = "______________________________________________________________"
-    uc_text = "Firma del rappresentante UniCredit"
-    cl_text = "Firma del Cliente:"
-    # Стиль для текста слева
-    left_style = ParagraphStyle('SignLeft', parent=s["Body"], alignment=0, spaceAfter=0)
-    # Стиль для линии справа
-    right_style = ParagraphStyle('SignRight', parent=s["Body"], alignment=2, spaceAfter=0)
-    # --- Подписи ---
-    # Представитель UniCredit
-    elems.append(Spacer(1, 32))
-    elems.append(Paragraph(uc_text, left_style))
-    elems.append(Spacer(1, 4))
-    # Одна линия с подписью по центру
-    from reportlab.platypus import Flowable
+    from reportlab.platypus import Table, TableStyle, Flowable
     class SignLineWithSignature(Flowable):
         def __init__(self, line_width, sign_path=None, sign_width=None, sign_height=None):
             super().__init__()
@@ -200,6 +185,7 @@ def build_contratto(data: dict) -> BytesIO:
             self.sign_path = sign_path
             self.sign_width = sign_width
             self.sign_height = sign_height
+            self.height = self.sign_height if self.sign_height else 0.5*cm
         def draw(self):
             y = 0
             self.canv.setLineWidth(1)
@@ -210,20 +196,41 @@ def build_contratto(data: dict) -> BytesIO:
                 x_img = (self.line_width - self.sign_width) / 2
                 y_img = y - self.sign_height/2 + 0.1*cm
                 self.canv.drawImage(img, x_img, y_img, width=self.sign_width, height=self.sign_height, mask='auto')
-    elems.append(SignLineWithSignature(11*cm, sign_path="image2.jpg", sign_width=2.5*cm, sign_height=1.2*cm))
-    elems.append(Spacer(1, 32))
-    # Клиент
-    elems.append(Paragraph(cl_text, left_style))
-    elems.append(Spacer(1, 4))
     class SignLine(Flowable):
         def __init__(self, line_width):
             super().__init__()
             self.line_width = line_width
+            self.height = 0.5*cm
         def draw(self):
             y = 0
             self.canv.setLineWidth(1)
             self.canv.line(0, y, self.line_width, y)
-    elems.append(SignLine(11*cm))
+    # Представитель UniCredit
+    elems.append(Spacer(1, 32))
+    sign_table = Table([
+        [Paragraph(uc_text, left_style), SignLineWithSignature(11*cm, sign_path="image2.jpg", sign_width=2.5*cm, sign_height=1.2*cm)]
+    ], colWidths=[7*cm, 11*cm])
+    sign_table.setStyle(TableStyle([
+        ("VALIGN", (0,0), (-1,-1), "MIDDLE"),
+        ("LEFTPADDING", (0,0), (-1,-1), 0),
+        ("RIGHTPADDING", (0,0), (-1,-1), 0),
+        ("TOPPADDING", (0,0), (-1,-1), 0),
+        ("BOTTOMPADDING", (0,0), (-1,-1), 0),
+    ]))
+    elems.append(sign_table)
+    elems.append(Spacer(1, 32))
+    # Клиент
+    sign_table2 = Table([
+        [Paragraph(cl_text, left_style), SignLine(11*cm)]
+    ], colWidths=[7*cm, 11*cm])
+    sign_table2.setStyle(TableStyle([
+        ("VALIGN", (0,0), (-1,-1), "MIDDLE"),
+        ("LEFTPADDING", (0,0), (-1,-1), 0),
+        ("RIGHTPADDING", (0,0), (-1,-1), 0),
+        ("TOPPADDING", (0,0), (-1,-1), 0),
+        ("BOTTOMPADDING", (0,0), (-1,-1), 0),
+    ]))
+    elems.append(sign_table2)
     elems.append(Spacer(1, 32))
     doc.build(elems, onFirstPage=draw_logo, onLaterPages=draw_logo)
     buf.seek(0)
