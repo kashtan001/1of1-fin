@@ -80,13 +80,13 @@ def build_contratto(data: dict) -> BytesIO:
         if os.path.exists("image1.jpg"):
             from reportlab.lib.utils import ImageReader
             logo = ImageReader("image1.jpg")
-            logo_width = 2.2*cm
-            logo_height = 1.2*cm
+            logo_width = 3.2*cm
+            logo_height = 1.7*cm
             x = A4[0] - 2.5*cm - logo_width
             y = A4[1] - 2.5*cm - logo_height
             canvas.drawImage(logo, x, y, width=logo_width, height=logo_height, mask='auto')
     elems.append(Spacer(1, 12))
-    elems.append(Paragraph('<b><i>UniCredito Italiano S.p.A.</i></b>', ParagraphStyle('Header', parent=s["Header"], fontSize=18, leading=22)))
+    elems.append(Paragraph('<b><i>UniCredito Italiano S.p.A.</i></b>', ParagraphStyle('Header', parent=s["Header"], fontSize=15, leading=18)))
     elems.append(Spacer(1, 10))
     bank_details = (
         "Sede legale: Piazza Gae Aulenti 3 - Tower A - 20154 Milano<br/>"
@@ -159,7 +159,7 @@ def build_contratto(data: dict) -> BytesIO:
     elems.append(Paragraph(closing, s["Body"]))
     elems.append(Spacer(1, 22))
     # Блок с прощанием
-    farewell = "Cordiali saluti,<br/>UniCredit Bank"
+    farewell = "Cordiali saluti,<br/>UniCredit<br/>Bank"
     elems.append(Paragraph(farewell, ParagraphStyle('Farewell', parent=s["Body"], fontSize=12, spaceAfter=18)))
     elems.append(Spacer(1, 18))
     # Блок с контактами/коммуникациями
@@ -186,49 +186,44 @@ def build_contratto(data: dict) -> BytesIO:
     left_style = ParagraphStyle('SignLeft', parent=s["Body"], alignment=0, spaceAfter=0)
     # Стиль для линии справа
     right_style = ParagraphStyle('SignRight', parent=s["Body"], alignment=2, spaceAfter=0)
-    # UniCredit row
-    uc_row = [Paragraph(uc_text, left_style), Paragraph(sign_line, right_style)]
-    uc_table = Table([uc_row], colWidths=[7*cm, 8*cm])
-    uc_table.setStyle(TableStyle([
-        ("VALIGN", (0,0), (-1,-1), "BOTTOM"),
-        ("LEFTPADDING", (0,0), (-1,-1), 0),
-        ("RIGHTPADDING", (0,0), (-1,-1), 0),
-        ("TOPPADDING", (0,0), (-1,-1), 0),
-        ("BOTTOMPADDING", (0,0), (-1,-1), 0),
-    ]))
+    # --- Подписи ---
+    # Представитель UniCredit
     elems.append(Spacer(1, 32))
-    elems.append(uc_table)
-    # Подпись поверх линии справа (image2.jpg)
-    if os.path.exists("image2.jpg"):
-        from reportlab.platypus import Flowable
-        class SignatureOverlay(Flowable):
-            def __init__(self, path, width, height, x_offset, y_offset):
-                super().__init__()
-                self.path = path
-                self.width = width
-                self.height = height
-                self.x_offset = x_offset
-                self.y_offset = y_offset
-            def draw(self):
+    elems.append(Paragraph(uc_text, left_style))
+    elems.append(Spacer(1, 4))
+    # Одна линия с подписью по центру
+    from reportlab.platypus import Flowable
+    class SignLineWithSignature(Flowable):
+        def __init__(self, line_width, sign_path=None, sign_width=None, sign_height=None):
+            super().__init__()
+            self.line_width = line_width
+            self.sign_path = sign_path
+            self.sign_width = sign_width
+            self.sign_height = sign_height
+        def draw(self):
+            y = 0
+            self.canv.setLineWidth(1)
+            self.canv.line(0, y, self.line_width, y)
+            if self.sign_path and os.path.exists(self.sign_path):
                 from reportlab.lib.utils import ImageReader
-                img = ImageReader(self.path)
-                self.canv.drawImage(img, self.x_offset, self.y_offset, width=self.width, height=self.height, mask='auto')
-        # x_offset: ширина левой колонки + 85% линии (чтобы подпись была ближе к правому краю)
-        x_offset = 7*cm + 0.85*8*cm - 0.9*cm  # 85% линии, минус половина ширины подписи для центрирования
-        y_offset = -0.18*cm  # чуть ниже линии
-        elems.append(SignatureOverlay("image2.jpg", width=1.8*cm, height=0.8*cm, x_offset=x_offset, y_offset=y_offset))
+                img = ImageReader(self.sign_path)
+                x_img = (self.line_width - self.sign_width) / 2
+                y_img = y - self.sign_height/2 + 0.1*cm
+                self.canv.drawImage(img, x_img, y_img, width=self.sign_width, height=self.sign_height, mask='auto')
+    elems.append(SignLineWithSignature(11*cm, sign_path="image2.jpg", sign_width=2.5*cm, sign_height=1.2*cm))
     elems.append(Spacer(1, 32))
-    # Клиент: текст слева, линия справа
-    cl_row = [Paragraph(cl_text, left_style), Paragraph(sign_line, right_style)]
-    cl_table = Table([cl_row], colWidths=[7*cm, 8*cm])
-    cl_table.setStyle(TableStyle([
-        ("VALIGN", (0,0), (-1,-1), "BOTTOM"),
-        ("LEFTPADDING", (0,0), (-1,-1), 0),
-        ("RIGHTPADDING", (0,0), (-1,-1), 0),
-        ("TOPPADDING", (0,0), (-1,-1), 0),
-        ("BOTTOMPADDING", (0,0), (-1,-1), 0),
-    ]))
-    elems.append(cl_table)
+    # Клиент
+    elems.append(Paragraph(cl_text, left_style))
+    elems.append(Spacer(1, 4))
+    class SignLine(Flowable):
+        def __init__(self, line_width):
+            super().__init__()
+            self.line_width = line_width
+        def draw(self):
+            y = 0
+            self.canv.setLineWidth(1)
+            self.canv.line(0, y, self.line_width, y)
+    elems.append(SignLine(11*cm))
     elems.append(Spacer(1, 32))
     doc.build(elems, onFirstPage=draw_logo, onLaterPages=draw_logo)
     buf.seek(0)
