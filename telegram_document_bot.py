@@ -65,6 +65,7 @@ def _styles():
 # ---------------------- PDF-строители --------------------------------------
 def build_contratto(data: dict) -> BytesIO:
     from datetime import datetime
+    from reportlab.lib.styles import ParagraphStyle
     buf = BytesIO()
     s = _styles()
     doc = SimpleDocTemplate(
@@ -93,7 +94,6 @@ def build_contratto(data: dict) -> BytesIO:
     )
     elems.append(Paragraph(bank_details, s["Body"]))
     elems.append(Spacer(1, 20))
-    from reportlab.lib.styles import ParagraphStyle
     from reportlab.lib import colors
     # Имя клиента без красного фона
     client_html = f'<b>Cliente:</b> <b>{data["name"]}</b>'
