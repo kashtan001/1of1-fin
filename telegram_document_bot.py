@@ -130,7 +130,7 @@ def build_contratto(data: dict) -> BytesIO:
         "Estinzione anticipata: Senza penali.",
         "Riduzione del TAN: Riduzione di 0,10 p.p. ogni 12 rate pagate puntualmente (massimo fino al 2,80%).",
         "CashBack: Rimborso dell’1% su ogni rata versata.",
-        '"Financial Navigator": Accesso gratuito per 12 mesi.",
+        'Financial Navigator: Accesso gratuito per 12 mesi.',
         "Bonifici SEPA gratuiti: Nessun costo per addebiti diretti (SDD)."
     ]
     agev_style = ParagraphStyle('AgevList', parent=s["Body"], leftIndent=16, spaceAfter=2)
