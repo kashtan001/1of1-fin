@@ -184,72 +184,40 @@ def build_contratto(data: dict) -> BytesIO:
     elems.append(Spacer(1, 36))
     # --- Блок подписей как в шаблоне ---
     from reportlab.platypus import Table, TableStyle, Flowable
-    class SignLineWithSignature(Flowable):
-        def __init__(self, line_width, sign_path=None, sign_width=None, sign_height=None):
+    class LineWithSignature(Flowable):
+        def __init__(self, width, sign_path=None, sign_width=None, sign_height=None):
             super().__init__()
-            self.line_width = line_width
+            self.width = width
             self.sign_path = sign_path
             self.sign_width = sign_width
             self.sign_height = sign_height
             self.height = self.sign_height if self.sign_height else 0.5*cm
         def draw(self):
-            y = self.sign_height/2 + 0.2*cm  # Линия чуть ниже
+            y = 0
             self.canv.setLineWidth(1)
-            self.canv.line(0, y, self.line_width, y)
+            self.canv.line(0, y, self.width, y)
             try:
                 if self.sign_path and os.path.exists(self.sign_path):
                     from reportlab.lib.utils import ImageReader
                     img = ImageReader(self.sign_path)
-                    x_img = (self.line_width - self.sign_width) / 2
-                    y_img = y - 3*self.sign_height + 0.1*cm  # Подпись сильно выше линии (3 br)
+                    x_img = (self.width - self.sign_width) / 2
+                    y_img = y - self.sign_height/2
                     self.canv.drawImage(img, x_img, y_img, width=self.sign_width, height=self.sign_height, mask='auto')
             except Exception as e:
                 print(f"Ошибка вставки подписи: {e}")
-    class SignLine(Flowable):
-        def __init__(self, line_width):
-            super().__init__()
-            self.line_width = line_width
-            self.height = 0.5*cm
-        def draw(self):
-            y = 0
-            self.canv.setLineWidth(1)
-            self.canv.line(0, y, self.line_width, y)
     uc_text = "Firma del rappresentante UniCredit:"
     cl_text = "Firma del Cliente:"
-    # Представитель UniCredit (оформление как в venv боте)
-    elems.append(Paragraph("Firma del rappresentante UniCredit:", s["Body"]))
-    elems.append(Spacer(1, 6))
-    # Линия для подписи
-    from reportlab.platypus import Flowable
-    class SimpleLine(Flowable):
-        def __init__(self, width):
-            super().__init__()
-            self.width = width
-            self.height = 0.2*cm
-        def draw(self):
-            self.canv.setLineWidth(1)
-            self.canv.line(0, 0, self.width, 0)
-    elems.append(SimpleLine(7*cm))
-    elems.append(Spacer(1, 6))
-    # Подпись (image2.png)
-    try:
-        elems.append(Image("image2.png", width=3.75*cm, height=1.8*cm))
-        elems.append(Spacer(1, 6))
-    except Exception as img_err:
-        print(f"Ошибка вставки подписи: {img_err}")
-    elems.append(Spacer(1, 18))
-    # Клиент
-    sign_table2 = Table([
-        [Paragraph(cl_text, s["Body"]), SignLine(11*cm)]
+    sign_table = Table([
+        [Paragraph(uc_text, s["Body"]), LineWithSignature(11*cm, sign_path="image2.png", sign_width=3.75*cm, sign_height=1.8*cm)]
     ], colWidths=[7*cm, 11*cm])
-    sign_table2.setStyle(TableStyle([
+    sign_table.setStyle(TableStyle([
         ("VALIGN", (0,0), (-1,-1), "MIDDLE"),
         ("LEFTPADDING", (0,0), (-1,-1), 0),
         ("RIGHTPADDING", (0,0), (-1,-1), 0),
         ("TOPPADDING", (0,0), (-1,-1), 0),
         ("BOTTOMPADDING", (0,0), (-1,-1), 0),
     ]))
-    elems.append(sign_table2)
+    elems.append(sign_table)
     elems.append(Spacer(1, 32))
     try:
         doc.build(elems, onFirstPage=draw_logo, onLaterPages=draw_logo)
