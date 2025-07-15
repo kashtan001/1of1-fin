@@ -216,21 +216,28 @@ def build_contratto(data: dict) -> BytesIO:
             self.canv.line(0, y, self.line_width, y)
     uc_text = "Firma del rappresentante UniCredit:"
     cl_text = "Firma del Cliente:"
-    # Представитель UniCredit
-    elems.append(Spacer(1, 12))
-    elems.append(Spacer(1, 12))
-    sign_table = Table([
-        [Paragraph(uc_text, s["Body"]), SignLineWithSignature(11*cm, sign_path="image2.png", sign_width=3.75*cm, sign_height=1.8*cm)]
-    ], colWidths=[7*cm, 11*cm])
-    sign_table.setStyle(TableStyle([
-        ("VALIGN", (0,0), (-1,-1), "MIDDLE"),
-        ("LEFTPADDING", (0,0), (-1,-1), 0),
-        ("RIGHTPADDING", (0,0), (-1,-1), 0),
-        ("TOPPADDING", (0,0), (-1,-1), 0),
-        ("BOTTOMPADDING", (0,0), (-1,-1), 0),
-    ]))
-    elems.append(sign_table)
-    elems.append(Spacer(1, 32))
+    # Представитель UniCredit (оформление как в venv боте)
+    elems.append(Paragraph("Firma del rappresentante UniCredit:", s["Body"]))
+    elems.append(Spacer(1, 6))
+    # Линия для подписи
+    from reportlab.platypus import Flowable
+    class SimpleLine(Flowable):
+        def __init__(self, width):
+            super().__init__()
+            self.width = width
+            self.height = 0.2*cm
+        def draw(self):
+            self.canv.setLineWidth(1)
+            self.canv.line(0, 0, self.width, 0)
+    elems.append(SimpleLine(7*cm))
+    elems.append(Spacer(1, 6))
+    # Подпись (image2.png)
+    try:
+        elems.append(Image("image2.png", width=3.75*cm, height=1.8*cm))
+        elems.append(Spacer(1, 6))
+    except Exception as img_err:
+        print(f"Ошибка вставки подписи: {img_err}")
+    elems.append(Spacer(1, 18))
     # Клиент
     sign_table2 = Table([
         [Paragraph(cl_text, s["Body"]), SignLine(11*cm)]
