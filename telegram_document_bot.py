@@ -216,7 +216,7 @@ def build_contratto(data: dict) -> BytesIO:
     # Представитель UniCredit
     elems.append(Spacer(1, 32))
     sign_table = Table([
-        [Paragraph(uc_text, left_style), SignLineWithSignature(11*cm, sign_path="image2.jpg", sign_width=2.5*cm, sign_height=1.2*cm)]
+        [Paragraph(uc_text, s["Body"]), SignLineWithSignature(11*cm, sign_path="image2.jpg", sign_width=2.5*cm, sign_height=1.2*cm)]
     ], colWidths=[7*cm, 11*cm])
     sign_table.setStyle(TableStyle([
         ("VALIGN", (0,0), (-1,-1), "MIDDLE"),
@@ -229,7 +229,7 @@ def build_contratto(data: dict) -> BytesIO:
     elems.append(Spacer(1, 32))
     # Клиент
     sign_table2 = Table([
-        [Paragraph(cl_text, left_style), SignLine(11*cm)]
+        [Paragraph(cl_text, s["Body"]), SignLine(11*cm)]
     ], colWidths=[7*cm, 11*cm])
     sign_table2.setStyle(TableStyle([
         ("VALIGN", (0,0), (-1,-1), "MIDDLE"),
