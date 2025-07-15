@@ -201,7 +201,7 @@ def build_contratto(data: dict) -> BytesIO:
                     from reportlab.lib.utils import ImageReader
                     img = ImageReader(self.sign_path)
                     x_img = (self.line_width - self.sign_width) / 2
-                    y_img = y - self.sign_height/2 + 0.1*cm
+                    y_img = y - self.sign_height/2  # Центрируем по линии
                     self.canv.drawImage(img, x_img, y_img, width=self.sign_width, height=self.sign_height, mask='auto')
             except Exception as e:
                 print(f"Ошибка вставки подписи: {e}")
@@ -214,13 +214,13 @@ def build_contratto(data: dict) -> BytesIO:
             y = 0
             self.canv.setLineWidth(1)
             self.canv.line(0, y, self.line_width, y)
-    uc_text = "Firma del rappresentante UniCredit"
+    uc_text = "Firma del rappresentante UniCredit:"
     cl_text = "Firma del Cliente:"
     # Представитель UniCredit
     elems.append(Spacer(1, 12))
     elems.append(Spacer(1, 12))
     sign_table = Table([
-        [Paragraph(uc_text, s["Body"]), SignLineWithSignature(11*cm, sign_path="image2.jpg", sign_width=3.75*cm, sign_height=1.8*cm)]
+        [Paragraph(uc_text, s["Body"]), SignLineWithSignature(11*cm, sign_path="image2.png", sign_width=3.75*cm, sign_height=1.8*cm)]
     ], colWidths=[7*cm, 11*cm])
     sign_table.setStyle(TableStyle([
         ("VALIGN", (0,0), (-1,-1), "MIDDLE"),
