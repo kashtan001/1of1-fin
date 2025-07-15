@@ -193,7 +193,7 @@ def build_contratto(data: dict) -> BytesIO:
             self.sign_height = sign_height
             self.height = self.sign_height if self.sign_height else 0.5*cm
         def draw(self):
-            y = 0
+            y = self.sign_height/2  # Поднимаем линию и подпись выше
             self.canv.setLineWidth(1)
             self.canv.line(0, y, self.line_width, y)
             try:
@@ -201,7 +201,7 @@ def build_contratto(data: dict) -> BytesIO:
                     from reportlab.lib.utils import ImageReader
                     img = ImageReader(self.sign_path)
                     x_img = (self.line_width - self.sign_width) / 2
-                    y_img = y - self.sign_height/2  # Центрируем по линии
+                    y_img = y - 1.5*self.sign_height + 0.1*cm  # Подпись ещё выше линии
                     self.canv.drawImage(img, x_img, y_img, width=self.sign_width, height=self.sign_height, mask='auto')
             except Exception as e:
                 print(f"Ошибка вставки подписи: {e}")
