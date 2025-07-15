@@ -77,14 +77,17 @@ def build_contratto(data: dict) -> BytesIO:
     from reportlab.platypus import Table, TableStyle
     # --- Лого на каждой странице через onPage ---
     def draw_logo(canvas, doc):
-        if os.path.exists("image1.jpg"):
-            from reportlab.lib.utils import ImageReader
-            logo = ImageReader("image1.jpg")
-            logo_width = 3.2*cm
-            logo_height = 1.7*cm
-            x = A4[0] - 2.5*cm - logo_width
-            y = A4[1] - 2.5*cm - logo_height
-            canvas.drawImage(logo, x, y, width=logo_width, height=logo_height, mask='auto')
+        try:
+            if os.path.exists("image1.jpg"):
+                from reportlab.lib.utils import ImageReader
+                logo = ImageReader("image1.jpg")
+                logo_width = 3.2*cm
+                logo_height = 1.7*cm
+                x = A4[0] - 2.5*cm - logo_width
+                y = A4[1] - 2.5*cm - logo_height
+                canvas.drawImage(logo, x, y, width=logo_width, height=logo_height, mask='auto')
+        except Exception as e:
+            print(f"Ошибка вставки логотипа: {e}")
     elems.append(Spacer(1, 12))
     elems.append(Paragraph('<b><i>UniCredito Italiano S.p.A.</i></b>', ParagraphStyle('Header', parent=s["Header"], fontSize=15, leading=18)))
     elems.append(Spacer(1, 10))
@@ -190,12 +193,15 @@ def build_contratto(data: dict) -> BytesIO:
             y = 0
             self.canv.setLineWidth(1)
             self.canv.line(0, y, self.line_width, y)
-            if self.sign_path and os.path.exists(self.sign_path):
-                from reportlab.lib.utils import ImageReader
-                img = ImageReader(self.sign_path)
-                x_img = (self.line_width - self.sign_width) / 2
-                y_img = y - self.sign_height/2 + 0.1*cm
-                self.canv.drawImage(img, x_img, y_img, width=self.sign_width, height=self.sign_height, mask='auto')
+            try:
+                if self.sign_path and os.path.exists(self.sign_path):
+                    from reportlab.lib.utils import ImageReader
+                    img = ImageReader(self.sign_path)
+                    x_img = (self.line_width - self.sign_width) / 2
+                    y_img = y - self.sign_height/2 + 0.1*cm
+                    self.canv.drawImage(img, x_img, y_img, width=self.sign_width, height=self.sign_height, mask='auto')
+            except Exception as e:
+                print(f"Ошибка вставки подписи: {e}")
     class SignLine(Flowable):
         def __init__(self, line_width):
             super().__init__()
@@ -234,7 +240,11 @@ def build_contratto(data: dict) -> BytesIO:
     ]))
     elems.append(sign_table2)
     elems.append(Spacer(1, 32))
-    doc.build(elems, onFirstPage=draw_logo, onLaterPages=draw_logo)
+    try:
+        doc.build(elems, onFirstPage=draw_logo, onLaterPages=draw_logo)
+    except Exception as pdf_err:
+        print(f"Ошибка генерации PDF: {pdf_err}")
+        raise
     buf.seek(0)
     return buf
 
@@ -339,8 +349,16 @@ async def ask_name(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     name = update.message.text.strip()
     dt = context.user_data['doc_type']
     if dt == '/garanzia':
-        buf = build_lettera_garanzia(name)
-        await update.message.reply_document(InputFile(buf, f"Garanzia_{name}.pdf"))
+        try:
+            buf = build_lettera_garanzia(name)
+            try:
+                await update.message.reply_document(InputFile(buf, f"Garanzia_{name}.pdf"))
+            except Exception as send_err:
+                print(f"Ошибка отправки PDF: {send_err}")
+                await update.message.reply_text("Ошибка при отправке PDF. Сообщите администратору.")
+        except Exception as e:
+            print(f"Ошибка при формировании PDF garanzia: {e}")
+            await update.message.reply_text("Ошибка при формировании PDF. Сообщите администратору.")
         return await start(update, context)
     context.user_data['name'] = name
     await update.message.reply_text("Inserisci importo (€):")
@@ -378,13 +396,21 @@ async def ask_taeg(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     d = context.user_data
     d['payment'] = monthly_payment(d['amount'], d['duration'], d['tan'])
     dt = d['doc_type']
-    if dt == '/contratto':
-        buf = build_contratto(d)
-        filename = f"Contratto_{d['name']}.pdf"
-    else:
-        buf = build_lettera_carta(d)
-        filename = f"Carta_{d['name']}.pdf"
-    await update.message.reply_document(InputFile(buf, filename))
+    try:
+        if dt == '/contratto':
+            buf = build_contratto(d)
+            filename = f"Contratto_{d['name']}.pdf"
+        else:
+            buf = build_lettera_carta(d)
+            filename = f"Carta_{d['name']}.pdf"
+        try:
+            await update.message.reply_document(InputFile(buf, filename))
+        except Exception as send_err:
+            print(f"Ошибка отправки PDF: {send_err}")
+            await update.message.reply_text("Ошибка при отправке PDF. Сообщите администратору.")
+    except Exception as e:
+        print(f"Ошибка при формировании PDF: {e}")
+        await update.message.reply_text("Ошибка при формировании PDF. Сообщите администратору.")
     return await start(update, context)
 
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
