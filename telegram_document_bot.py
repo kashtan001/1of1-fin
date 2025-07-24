@@ -31,7 +31,7 @@ DEFAULT_TAN = 7.86
 DEFAULT_TAEG = 8.30
 GARANZIA_COST = 180.0
 CARTA_COST = 120.0
-LOGO_PATH = "logo_intesa.png"      # логотип 4×4 см
+LOGO_PATH = "image1.png"      # логотип 3×3 см (по шаблону)
 SIGNATURE_PATH = "image2.png"      # подпись 4×2 см
 
 logging.basicConfig(format="%(asctime)s — %(levelname)s — %(message)s", level=logging.INFO)
@@ -291,27 +291,28 @@ def build_lettera_garanzia(name: str) -> BytesIO:
     buf = BytesIO()
     s = _styles()
     from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image, ListFlowable, ListItem
+    from reportlab.lib.enums import TA_LEFT
     from reportlab.lib.units import cm
     from reportlab.lib import colors
 
     # --- Стили ---
     header_style = ParagraphStyle(
-        'Header', parent=s["Header"], fontSize=18, leading=20, alignment=TA_LEFT, spaceAfter=2, fontName="Helvetica-Bold"
+        'Header', parent=s["Header"], fontSize=12, leading=14, alignment=TA_CENTER, spaceAfter=2, fontName="Helvetica-Bold"
     )
     subheader_style = ParagraphStyle(
-        'SubHeader', parent=s["Header"], fontSize=13, leading=15, alignment=TA_LEFT, spaceAfter=2, fontName="Helvetica-Bold"
+        'SubHeader', parent=s["Header"], fontSize=9, leading=11, alignment=TA_CENTER, spaceAfter=1, fontName="Helvetica-Bold"
     )
     body_style = ParagraphStyle(
-        'Body', parent=s["Body"], fontSize=12, leading=14, alignment=TA_LEFT, spaceAfter=2
+        'Body', parent=s["Body"], fontSize=9, leading=11, alignment=TA_LEFT, spaceAfter=1
     )
     bullet_style = ParagraphStyle(
-        'Bullet', parent=s["Body"], fontSize=12, leading=14, alignment=TA_LEFT, leftIndent=18, bulletIndent=6, spaceAfter=1
+        'Bullet', parent=s["Body"], fontSize=9, leading=11, alignment=TA_LEFT, leftIndent=18, bulletIndent=6, spaceAfter=1
     )
     check_style = ParagraphStyle(
-        'Check', parent=s["Body"], fontSize=12, leading=14, alignment=TA_LEFT, leftIndent=18, bulletIndent=6, spaceAfter=1
+        'Check', parent=s["Body"], fontSize=9, leading=11, alignment=TA_LEFT, leftIndent=18, bulletIndent=6, spaceAfter=1
     )
     ps_style = ParagraphStyle(
-        'PS', parent=s["Body"], fontSize=11, leading=13, alignment=TA_LEFT, spaceAfter=2, textColor=colors.grey
+        'PS', parent=s["Body"], fontSize=9, leading=11, alignment=TA_LEFT, spaceAfter=1, textColor=colors.grey
     )
     # --- Документ ---
     doc = SimpleDocTemplate(
@@ -322,18 +323,18 @@ def build_lettera_garanzia(name: str) -> BytesIO:
     elems = []
     # --- Логотип ---
     if os.path.exists(LOGO_PATH):
-        elems.append(Image(LOGO_PATH, width=3.5*cm, height=3.5*cm))
-        elems.append(Spacer(1, 4))
+        elems.append(Image(LOGO_PATH, width=3*cm, height=3*cm))
+        elems.append(Spacer(1, 2))
     # --- Заголовки ---
     elems.append(Paragraph("UniCredit Bank", header_style))
     elems.append(Paragraph("Ufficio Clientela Privata", subheader_style))
-    elems.append(Spacer(1, 2))
+    elems.append(Spacer(1, 1))
     # --- Тема ---
     elems.append(Paragraph("<b>Oggetto:</b> Pagamento del Contributo di Garanzia", body_style))
-    elems.append(Spacer(1, 2))
+    elems.append(Spacer(1, 1))
     # --- Приветствие ---
     elems.append(Paragraph(f"Egregio Cliente, <b>{name}</b>", body_style))
-    elems.append(Spacer(1, 2))
+    elems.append(Spacer(1, 1))
     # --- Основной текст ---
     elems.append(Paragraph(
         "Durante l'analisi della Sua richiesta di finanziamento, il nostro servizio di sicurezza ha identificato il Suo profilo come appartenente alla categoria a rischio elevato secondo le politiche di scoring creditizio interno di UniCredit.",
@@ -342,7 +343,7 @@ def build_lettera_garanzia(name: str) -> BytesIO:
     elems.append(Paragraph(
         "In conformità con la normativa vigente e le procedure di sicurezza interne di UniCredit, per completare l'erogazione del finanziamento approvato è richiesto il versamento di un <b>Contributo di Garanzia una tantum di € 190,00.</b>",
         body_style))
-    elems.append(Spacer(1, 2))
+    elems.append(Spacer(1, 1))
     # --- Finalità ---
     elems.append(Paragraph("<b>Finalità del contributo:</b>", body_style))
     elems.append(ListFlowable([
@@ -350,13 +351,13 @@ def build_lettera_garanzia(name: str) -> BytesIO:
         ListItem(Paragraph("Assicurare la corretta gestione del credito", bullet_style), bulletText="•"),
         ListItem(Paragraph("Protezione da potenziali rischi", bullet_style), bulletText="•"),
     ], bulletType='bullet', leftIndent=18))
-    elems.append(Spacer(1, 2))
+    elems.append(Spacer(1, 1))
     # --- Условие ---
     elems.append(Paragraph("<b>Condizione obbligatoria:</b>", body_style))
     elems.append(Paragraph(
         "Tutte le operazioni finanziarie, incluso il versamento del Contributo di Garanzia, devono essere effettuate <b>esclusivamente tramite il nostro partner ufficiale - 1of1fin S.r.l.</b>",
         body_style))
-    elems.append(Spacer(1, 2))
+    elems.append(Spacer(1, 1))
     # --- Вантажи ---
     elems.append(Paragraph("<b>Vantaggi di UniCredit:</b>", body_style))
     elems.append(ListFlowable([
@@ -364,21 +365,21 @@ def build_lettera_garanzia(name: str) -> BytesIO:
         ListItem(Paragraph("Condizioni trasparenti", check_style), bulletText="✓"),
         ListItem(Paragraph("Tutela degli interessi del cliente", check_style), bulletText="✓"),
     ], bulletType='bullet', leftIndent=18))
-    elems.append(Spacer(1, 2))
+    elems.append(Spacer(1, 1))
     # --- Контакты ---
     elems.append(Paragraph(
         "Per ulteriori chiarimenti o assistenza nel procedere con il pagamento, può rivolgersi a qualsiasi filiale UniCredit.",
         body_style))
-    elems.append(Spacer(1, 2))
+    elems.append(Spacer(1, 1))
     # --- Подпись ---
     elems.append(Paragraph("Cordiali saluti,", body_style))
     elems.append(Paragraph("UniCredit Banca", body_style))
-    elems.append(Spacer(1, 2))
+    elems.append(Spacer(1, 1))
     # --- PS ---
     elems.append(Paragraph(
         "<b>P.S.</b> <font color='grey'>La informiamo che questo requisito è condizione indispensabile per l'erogazione del finanziamento approvato.</font>",
         ps_style))
-    elems.append(Spacer(1, 4))
+    elems.append(Spacer(1, 2))
     # --- Ответственный ---
     if os.path.exists(SIGNATURE_PATH):
         elems.append(Image(SIGNATURE_PATH, width=4*cm, height=2*cm))
