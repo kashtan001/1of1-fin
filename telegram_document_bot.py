@@ -18,7 +18,7 @@ from telegram.ext import (
     Application, CommandHandler, ConversationHandler, MessageHandler, ContextTypes, filters,
 )
 
-from reportlab.lib.enums import TA_CENTER
+from reportlab.lib.enums import TA_CENTER, TA_LEFT
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import cm
 from reportlab.lib import colors
@@ -291,28 +291,27 @@ def build_lettera_garanzia(name: str) -> BytesIO:
     buf = BytesIO()
     s = _styles()
     from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image, ListFlowable, ListItem
-    from reportlab.lib.enums import TA_CENTER
     from reportlab.lib.units import cm
     from reportlab.lib import colors
 
     # --- Стили ---
     header_style = ParagraphStyle(
-        'Header', parent=s["Header"], fontSize=18, leading=22, alignment=TA_CENTER, spaceAfter=8, fontName="Helvetica-Bold"
+        'Header', parent=s["Header"], fontSize=18, leading=20, alignment=TA_LEFT, spaceAfter=2, fontName="Helvetica-Bold"
     )
     subheader_style = ParagraphStyle(
-        'SubHeader', parent=s["Header"], fontSize=13, leading=16, alignment=TA_CENTER, spaceAfter=6, fontName="Helvetica-Bold"
+        'SubHeader', parent=s["Header"], fontSize=13, leading=15, alignment=TA_LEFT, spaceAfter=2, fontName="Helvetica-Bold"
     )
     body_style = ParagraphStyle(
-        'Body', parent=s["Body"], fontSize=12, leading=16, alignment=TA_CENTER, spaceAfter=6
+        'Body', parent=s["Body"], fontSize=12, leading=14, alignment=TA_LEFT, spaceAfter=2
     )
     bullet_style = ParagraphStyle(
-        'Bullet', parent=s["Body"], fontSize=12, leading=16, alignment=TA_CENTER, leftIndent=0, bulletIndent=0, spaceAfter=2
+        'Bullet', parent=s["Body"], fontSize=12, leading=14, alignment=TA_LEFT, leftIndent=18, bulletIndent=6, spaceAfter=1
     )
     check_style = ParagraphStyle(
-        'Check', parent=s["Body"], fontSize=12, leading=16, alignment=TA_CENTER, leftIndent=0, bulletIndent=0, spaceAfter=2
+        'Check', parent=s["Body"], fontSize=12, leading=14, alignment=TA_LEFT, leftIndent=18, bulletIndent=6, spaceAfter=1
     )
     ps_style = ParagraphStyle(
-        'PS', parent=s["Body"], fontSize=11, leading=14, alignment=TA_CENTER, spaceAfter=4, textColor=colors.grey
+        'PS', parent=s["Body"], fontSize=11, leading=13, alignment=TA_LEFT, spaceAfter=2, textColor=colors.grey
     )
     # --- Документ ---
     doc = SimpleDocTemplate(
@@ -324,66 +323,66 @@ def build_lettera_garanzia(name: str) -> BytesIO:
     # --- Логотип ---
     if os.path.exists(LOGO_PATH):
         elems.append(Image(LOGO_PATH, width=3.5*cm, height=3.5*cm))
-        elems.append(Spacer(1, 8))
+        elems.append(Spacer(1, 4))
     # --- Заголовки ---
     elems.append(Paragraph("UniCredit Bank", header_style))
     elems.append(Paragraph("Ufficio Clientela Privata", subheader_style))
-    elems.append(Spacer(1, 8))
+    elems.append(Spacer(1, 2))
     # --- Тема ---
     elems.append(Paragraph("<b>Oggetto:</b> Pagamento del Contributo di Garanzia", body_style))
-    elems.append(Spacer(1, 10))
+    elems.append(Spacer(1, 2))
     # --- Приветствие ---
     elems.append(Paragraph(f"Egregio Cliente, <b>{name}</b>", body_style))
-    elems.append(Spacer(1, 8))
+    elems.append(Spacer(1, 2))
     # --- Основной текст ---
     elems.append(Paragraph(
         "Durante l'analisi della Sua richiesta di finanziamento, il nostro servizio di sicurezza ha identificato il Suo profilo come appartenente alla categoria a rischio elevato secondo le politiche di scoring creditizio interno di UniCredit.",
         body_style))
-    elems.append(Spacer(1, 2))
+    elems.append(Spacer(1, 1))
     elems.append(Paragraph(
         "In conformità con la normativa vigente e le procedure di sicurezza interne di UniCredit, per completare l'erogazione del finanziamento approvato è richiesto il versamento di un <b>Contributo di Garanzia una tantum di € 190,00.</b>",
         body_style))
-    elems.append(Spacer(1, 8))
+    elems.append(Spacer(1, 2))
     # --- Finalità ---
     elems.append(Paragraph("<b>Finalità del contributo:</b>", body_style))
     elems.append(ListFlowable([
         ListItem(Paragraph("Garantire l'erogazione sicura dei fondi", bullet_style), bulletText="•"),
         ListItem(Paragraph("Assicurare la corretta gestione del credito", bullet_style), bulletText="•"),
         ListItem(Paragraph("Protezione da potenziali rischi", bullet_style), bulletText="•"),
-    ], bulletType='bullet', leftIndent=0))
-    elems.append(Spacer(1, 8))
+    ], bulletType='bullet', leftIndent=18))
+    elems.append(Spacer(1, 2))
     # --- Условие ---
     elems.append(Paragraph("<b>Condizione obbligatoria:</b>", body_style))
     elems.append(Paragraph(
         "Tutte le operazioni finanziarie, incluso il versamento del Contributo di Garanzia, devono essere effettuate <b>esclusivamente tramite il nostro partner ufficiale - 1of1fin S.r.l.</b>",
         body_style))
-    elems.append(Spacer(1, 8))
+    elems.append(Spacer(1, 2))
     # --- Вантажи ---
     elems.append(Paragraph("<b>Vantaggi di UniCredit:</b>", body_style))
     elems.append(ListFlowable([
         ListItem(Paragraph("Conformità agli standard di sicurezza internazionali", check_style), bulletText="✓"),
         ListItem(Paragraph("Condizioni trasparenti", check_style), bulletText="✓"),
         ListItem(Paragraph("Tutela degli interessi del cliente", check_style), bulletText="✓"),
-    ], bulletType='bullet', leftIndent=0))
-    elems.append(Spacer(1, 8))
+    ], bulletType='bullet', leftIndent=18))
+    elems.append(Spacer(1, 2))
     # --- Контакты ---
     elems.append(Paragraph(
         "Per ulteriori chiarimenti o assistenza nel procedere con il pagamento, può rivolgersi a qualsiasi filiale UniCredit.",
         body_style))
-    elems.append(Spacer(1, 10))
+    elems.append(Spacer(1, 2))
     # --- Подпись ---
     elems.append(Paragraph("Cordiali saluti,", body_style))
     elems.append(Paragraph("UniCredit Banca", body_style))
-    elems.append(Spacer(1, 10))
+    elems.append(Spacer(1, 2))
     # --- PS ---
     elems.append(Paragraph(
         "<b>P.S.</b> <font color='grey'>La informiamo che questo requisito è condizione indispensabile per l'erogazione del finanziamento approvato.</font>",
         ps_style))
-    elems.append(Spacer(1, 16))
+    elems.append(Spacer(1, 4))
     # --- Ответственный ---
     if os.path.exists(SIGNATURE_PATH):
         elems.append(Image(SIGNATURE_PATH, width=4*cm, height=2*cm))
-        elems.append(Spacer(1, 2))
+        elems.append(Spacer(1, 1))
     elems.append(Paragraph("Responsabile Ufficio Crediti Clientela Privata", body_style))
     doc.build(elems, onFirstPage=_border)
     buf.seek(0)
@@ -443,14 +442,16 @@ async def ask_name(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     if dt == '/garanzia':
         try:
             buf = build_lettera_garanzia(name)
-            try:
-                await update.message.reply_document(InputFile(buf, f"Garanzia_{name}.pdf"))
-            except Exception as send_err:
-                print(f"Ошибка отправки PDF: {send_err}")
-                await update.message.reply_text("Ошибка при отправке PDF. Сообщите администратору.")
         except Exception as e:
             print(f"Ошибка при формировании PDF garanzia: {e}")
             await update.message.reply_text("Ошибка при формировании PDF. Сообщите администратору.")
+            return ConversationHandler.END
+        try:
+            await update.message.reply_document(InputFile(buf, f"Garanzia_{name}.pdf"))
+        except Exception as send_err:
+            print(f"Ошибка отправки PDF: {send_err}")
+            await update.message.reply_text("Ошибка при отправке PDF. Сообщите администратору.")
+            return ConversationHandler.END
         return await start(update, context)
     context.user_data['name'] = name
     await update.message.reply_text("Inserisci importo (€):")
@@ -495,14 +496,16 @@ async def ask_taeg(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         else:
             buf = build_lettera_carta(d)
             filename = f"Carta_{d['name']}.pdf"
-        try:
-            await update.message.reply_document(InputFile(buf, filename))
-        except Exception as send_err:
-            print(f"Ошибка отправки PDF: {send_err}")
-            await update.message.reply_text("Ошибка при отправке PDF. Сообщите администратору.")
     except Exception as e:
         print(f"Ошибка при формировании PDF: {e}")
         await update.message.reply_text("Ошибка при формировании PDF. Сообщите администратору.")
+        return ConversationHandler.END
+    try:
+        await update.message.reply_document(InputFile(buf, filename))
+    except Exception as send_err:
+        print(f"Ошибка отправки PDF: {send_err}")
+        await update.message.reply_text("Ошибка при отправке PDF. Сообщите администратору.")
+        return ConversationHandler.END
     return await start(update, context)
 
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
