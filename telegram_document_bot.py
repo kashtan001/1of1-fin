@@ -207,16 +207,20 @@ def build_contratto(data: dict) -> BytesIO:
                 print(f"Ошибка вставки подписи: {e}")
     uc_text = "Firma del rappresentante UniCredit:"
     cl_text = "Firma del Cliente:"
+    # Две подписи в одной строке, как в шаблоне
     sign_table = Table([
-        [Paragraph(uc_text, s["Body"]), LineWithSignature(11*cm, sign_path="image2.png", sign_width=3.75*cm, sign_height=1.8*cm)],
-        [Paragraph(cl_text, s["Body"]), LineWithSignature(11*cm)]
-    ], colWidths=[7*cm, 11*cm])
+        [
+            Paragraph(uc_text, s["Body"]), LineWithSignature(7*cm),
+            Paragraph(cl_text, s["Body"]), LineWithSignature(7*cm)
+        ]
+    ], colWidths=[5*cm, 7*cm, 5*cm, 7*cm])
     sign_table.setStyle(TableStyle([
         ("VALIGN", (0,0), (-1,-1), "MIDDLE"),
         ("LEFTPADDING", (0,0), (-1,-1), 0),
         ("RIGHTPADDING", (0,0), (-1,-1), 0),
         ("TOPPADDING", (0,0), (-1,-1), 0),
         ("BOTTOMPADDING", (0,0), (-1,-1), 0),
+        ("ALIGN", (0,0), (-1,-1), "LEFT"),
     ]))
     elems.append(sign_table)
     elems.append(Spacer(1, 32))
