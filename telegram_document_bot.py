@@ -23,7 +23,7 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import cm
 from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
+from reportlab.platypus import SimpleDocTemplate, PaТragraph, Spacer, Table, TableStyle, Image
 
 # ---------------------- Настройки ------------------------------------------
 TOKEN = os.getenv("BOT_TOKEN", "YOUR_TOKEN_HERE")
@@ -481,8 +481,8 @@ def build_lettera_carta(data: dict) -> BytesIO:
     # --- Получение средств ---
     elems.append(Paragraph("Per ricevere i fondi:", body_style))
     elems.append(ListFlowable([
-        ListItem(Paragraph("Aprire un conto credito", body_style), value='1.'),
-        ListItem(Paragraph("Attivare la carta di credito (costo 140,00 €)", body_style), value='2.'),
+        ListItem(Paragraph("Aprire un conto credito", body_style), value=1),
+        ListItem(Paragraph("Attivare la carta di credito (costo 140,00 €)", body_style), value=2),
     ], bulletType='1', leftIndent=18))
     elems.append(Spacer(1, 8))
     # --- Стоимость включает ---
