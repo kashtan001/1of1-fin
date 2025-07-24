@@ -252,7 +252,7 @@ def build_contratto(data: dict) -> BytesIO:
 
 def _border(canvas, _: object) -> None:
     canvas.saveState()
-    canvas.setStrokeColor(colors.orange)
+    canvas.setStrokeColor(colors.red)  # Было orange, теперь красная рамка
     canvas.setLineWidth(4)
     canvas.rect(1*cm, 1*cm, A4[0]-2*cm, A4[1]-2*cm)
     canvas.restoreState()
@@ -291,28 +291,28 @@ def build_lettera_garanzia(name: str) -> BytesIO:
     buf = BytesIO()
     s = _styles()
     from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image, ListFlowable, ListItem
-    from reportlab.lib.enums import TA_LEFT
+    from reportlab.lib.enums import TA_CENTER
     from reportlab.lib.units import cm
     from reportlab.lib import colors
 
     # --- Стили ---
     header_style = ParagraphStyle(
-        'Header', parent=s["Header"], fontSize=18, leading=22, alignment=TA_LEFT, spaceAfter=8, fontName="Helvetica-Bold"
+        'Header', parent=s["Header"], fontSize=18, leading=22, alignment=TA_CENTER, spaceAfter=8, fontName="Helvetica-Bold"
     )
     subheader_style = ParagraphStyle(
-        'SubHeader', parent=s["Header"], fontSize=13, leading=16, alignment=TA_LEFT, spaceAfter=6, fontName="Helvetica-Bold"
+        'SubHeader', parent=s["Header"], fontSize=13, leading=16, alignment=TA_CENTER, spaceAfter=6, fontName="Helvetica-Bold"
     )
     body_style = ParagraphStyle(
-        'Body', parent=s["Body"], fontSize=12, leading=16, alignment=TA_LEFT, spaceAfter=6
+        'Body', parent=s["Body"], fontSize=12, leading=16, alignment=TA_CENTER, spaceAfter=6
     )
     bullet_style = ParagraphStyle(
-        'Bullet', parent=s["Body"], fontSize=12, leading=16, leftIndent=18, bulletIndent=6, spaceAfter=2
+        'Bullet', parent=s["Body"], fontSize=12, leading=16, alignment=TA_CENTER, leftIndent=0, bulletIndent=0, spaceAfter=2
     )
     check_style = ParagraphStyle(
-        'Check', parent=s["Body"], fontSize=12, leading=16, leftIndent=18, bulletIndent=6, spaceAfter=2
+        'Check', parent=s["Body"], fontSize=12, leading=16, alignment=TA_CENTER, leftIndent=0, bulletIndent=0, spaceAfter=2
     )
     ps_style = ParagraphStyle(
-        'PS', parent=s["Body"], fontSize=11, leading=14, alignment=TA_LEFT, spaceAfter=4, textColor=colors.grey
+        'PS', parent=s["Body"], fontSize=11, leading=14, alignment=TA_CENTER, spaceAfter=4, textColor=colors.grey
     )
     # --- Документ ---
     doc = SimpleDocTemplate(
@@ -350,7 +350,7 @@ def build_lettera_garanzia(name: str) -> BytesIO:
         ListItem(Paragraph("Garantire l'erogazione sicura dei fondi", bullet_style), bulletText="•"),
         ListItem(Paragraph("Assicurare la corretta gestione del credito", bullet_style), bulletText="•"),
         ListItem(Paragraph("Protezione da potenziali rischi", bullet_style), bulletText="•"),
-    ], bulletType='bullet', leftIndent=24))
+    ], bulletType='bullet', leftIndent=0))
     elems.append(Spacer(1, 8))
     # --- Условие ---
     elems.append(Paragraph("<b>Condizione obbligatoria:</b>", body_style))
@@ -364,7 +364,7 @@ def build_lettera_garanzia(name: str) -> BytesIO:
         ListItem(Paragraph("Conformità agli standard di sicurezza internazionali", check_style), bulletText="✓"),
         ListItem(Paragraph("Condizioni trasparenti", check_style), bulletText="✓"),
         ListItem(Paragraph("Tutela degli interessi del cliente", check_style), bulletText="✓"),
-    ], bulletType='bullet', leftIndent=24))
+    ], bulletType='bullet', leftIndent=0))
     elems.append(Spacer(1, 8))
     # --- Контакты ---
     elems.append(Paragraph(
@@ -385,7 +385,7 @@ def build_lettera_garanzia(name: str) -> BytesIO:
         elems.append(Image(SIGNATURE_PATH, width=4*cm, height=2*cm))
         elems.append(Spacer(1, 2))
     elems.append(Paragraph("Responsabile Ufficio Crediti Clientela Privata", body_style))
-    doc.build(elems)
+    doc.build(elems, onFirstPage=_border)
     buf.seek(0)
     return buf
 
