@@ -215,15 +215,8 @@ def build_contratto(data: dict) -> BytesIO:
                 img = ImageReader(self.sign_path)
                 line_len = line_x1 - line_x0
                 img_x = line_x0 + (line_len - self.sign_width) / 2
-                # Автоматически вычислять высоту по пропорциям, если не задана явно
-                iw, ih = img.getSize()
-                if self.sign_height:
-                    img_h = self.sign_height
-                else:
-                    img_h = self.sign_width * ih / iw
-                # Смещаем подпись чуть выше линии (baseline)
-                img_y = y - img_h * 1.85
-                c.drawImage(img, img_x, img_y, width=self.sign_width, height=img_h, mask='auto', preserveAspectRatio=True)
+                img_y = y - self.sign_height/2
+                c.drawImage(img, img_x, img_y, width=self.sign_width, height=self.sign_height, mask='auto')
             c.restoreState()
     # Ширина всей строки (почти вся страница, с учётом полей)
     line_width = A4[0] - 2*cm*2
