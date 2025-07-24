@@ -311,6 +311,10 @@ def build_lettera_garanzia(name: str) -> BytesIO:
         except Exception as e:
             print(f"Ошибка вставки логотипа: {e}")
 
+    def border_and_logo(canvas, doc):
+        _border(canvas, doc)
+        draw_logo(canvas, doc)
+
     # --- Стили ---
     header_style = ParagraphStyle(
         'Header', parent=s["Header"], fontSize=12, leading=14, alignment=TA_CENTER, spaceAfter=2, fontName="Helvetica-Bold"
@@ -434,7 +438,7 @@ def build_lettera_garanzia(name: str) -> BytesIO:
         fontsize=9
     ))
     try:
-        doc.build(elems, onFirstPage=lambda c, d: (_border(c, d), draw_logo(c, d)), onLaterPages=lambda c, d: (_border(c, d), draw_logo(c, d)))
+        doc.build(elems, onFirstPage=border_and_logo, onLaterPages=border_and_logo)
     except Exception as pdf_err:
         print(f"Ошибка генерации PDF: {pdf_err}")
         raise
