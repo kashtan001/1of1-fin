@@ -31,8 +31,8 @@ DEFAULT_TAN = 7.86
 DEFAULT_TAEG = 8.30
 GARANZIA_COST = 180.0
 CARTA_COST = 120.0
-LOGO_PATH = "image1.jpg"      # логотип UniCredit
-SIGNATURE_PATH = "image2.png"   # подпись
+LOGO_PATH = "logo_intesa.png"      # логотип 4×4 см
+SIGNATURE_PATH = "image2.png"      # подпись 4×2 см
 
 logging.basicConfig(format="%(asctime)s — %(levelname)s — %(message)s", level=logging.INFO)
 logger = logging.getLogger(__name__)
