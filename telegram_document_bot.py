@@ -447,33 +447,135 @@ def build_lettera_garanzia(name: str) -> BytesIO:
 
 
 def build_lettera_carta(data: dict) -> BytesIO:
-    subj = "Apertura Conto Credito e Emissione Carta"
+    from reportlab.lib.styles import ParagraphStyle
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, ListFlowable, ListItem, Flowable
+    from reportlab.lib.enums import TA_LEFT, TA_CENTER
+    from reportlab.lib.units import cm
+    from reportlab.lib import colors
+    from reportlab.lib.pagesizes import A4
+    import os
+    buf = BytesIO()
+    s = _styles()
+    # --- Стили ---
+    header_style = ParagraphStyle(
+        'Header', parent=s["Header"], fontSize=12, leading=14, alignment=TA_CENTER, spaceAfter=2, fontName="Helvetica-Bold"
+    )
+    subheader_style = ParagraphStyle(
+        'SubHeader', parent=s["Header"], fontSize=9, leading=11, alignment=TA_CENTER, spaceAfter=1, fontName="Helvetica-Bold"
+    )
+    body_style = ParagraphStyle(
+        'Body', parent=s["Body"], fontSize=9, leading=11, alignment=TA_LEFT, spaceAfter=1
+    )
+    bullet_style = ParagraphStyle(
+        'Bullet', parent=s["Body"], fontSize=9, leading=11, alignment=TA_LEFT, leftIndent=18, bulletIndent=6, spaceAfter=1
+    )
+    check_style = ParagraphStyle(
+        'Check', parent=s["Body"], fontSize=9, leading=11, alignment=TA_LEFT, leftIndent=18, bulletIndent=6, spaceAfter=1
+    )
+    # --- Документ ---
+    doc = SimpleDocTemplate(
+        buf, pagesize=A4,
+        leftMargin=2*cm, rightMargin=2*cm,
+        topMargin=2*cm, bottomMargin=2*cm
+    )
+    elems = []
+    # --- Заголовки ---
+    elems.append(Spacer(1, 3.2*cm + 8))  # Отступ под лого (3.2см высота + небольшой отступ)
+    elems.append(Paragraph("UniCredit Bank", header_style))
+    elems.append(Paragraph("Ufficio Clientela Privata", subheader_style))
+    elems.append(Spacer(1, 16))
+    # --- Приветствие ---
     name = data['name']
+    elems.append(Paragraph(f"Gentile Cliente,<b>{name}</b>", body_style))
+    elems.append(Spacer(1, 8))
+    # --- Основной текст ---
+    elems.append(Paragraph("Siamo lieti di comunicarle l'approvazione del suo credito a condizioni speciali:", body_style))
+    elems.append(Spacer(1, 8))
+    # --- Параметры кредита ---
     amount = money(data['amount'])
     months = data['duration']
-    tan = f"{data['tan']:.2f}%"
+    tan = f"{data['tan']:.2f}% annuo"
     payment = money(data['payment'])
-    cost = money(CARTA_COST)
-    body = (
-        f"<b>Vantaggio Importante per il Cliente {name}</b><br/><br/>"
-        f"Siamo lieti di informarla che il Suo prestito è stato <b>approvato</b> con successo per un importo di {amount}, "
-        f"con una durata di {months} mesi al tasso annuo nominale (TAN) del {tan}.<br/><br/>"
-        f"Il Suo pagamento mensile sarà pari a {payment}.<br/><br/>"
-        "Per ricevere l'erogazione del credito, indipendentemente dal fatto che Lei possieda già un conto "
-        "presso di noi, è necessario procedere con l'apertura di un <b>conto di credito</b>. "
-        f"Il costo del servizio di emissione della carta di credito associata ammonta a {cost}.<br/><br/>"
-        f"<b>Perché è richiesto il versamento di {cost}?</b><br/>"
-        "Il contributo rappresenta una quota di attivazione necessaria per:<br/>"
-        "- la generazione del codice IBAN dedicato,<br/>"
-        "- la produzione e l’invio della carta di credito,<br/>"
-        "- l’accesso prioritario ai servizi clienti,<br/>"
-        "- la gestione digitale del prestito.<br/><br/>"
-        "Il contributo previene le frodi e conferma l’identità del richiedente.<br/>"
-        "Rimaniamo a Sua disposizione per ogni assistenza.<br/><br/>"
-        "Cordiali saluti,<br/>"
-        "Intesa Sanpaolo S.p.A."
-    )
-    return _letter_common(subj, body)
+    elems.append(Paragraph(f"- Importo: <b>{amount}</b>", body_style))
+    elems.append(Paragraph(f"- Durata: <b>{months} mese{'i' if int(months)!=1 else ''}</b>", body_style))
+    elems.append(Paragraph(f"- Tasso: <b>{tan}</b>", body_style))
+    elems.append(Paragraph(f"- Rata: <b>{payment} al mese</b>", body_style))
+    elems.append(Spacer(1, 8))
+    # --- Получение средств ---
+    elems.append(Paragraph("Per ricevere i fondi:", body_style))
+    elems.append(ListFlowable([
+        ListItem(Paragraph("Aprire un conto credito", body_style), value='1.'),
+        ListItem(Paragraph("Attivare la carta di credito (costo 140,00 €)", body_style), value='2.'),
+    ], bulletType='1', leftIndent=18))
+    elems.append(Spacer(1, 8))
+    # --- Стоимость включает ---
+    elems.append(Paragraph("Il costo include:", body_style))
+    elems.append(ListFlowable([
+        ListItem(Paragraph("Conto IBAN personale", bullet_style), bulletText="•"),
+        ListItem(Paragraph("Emissione e spedizione della carta", bullet_style), bulletText="•"),
+        ListItem(Paragraph("Servizi digitali", bullet_style), bulletText="•"),
+        ListItem(Paragraph("Assistenza prioritaria", bullet_style), bulletText="•"),
+    ], bulletType='bullet', leftIndent=18))
+    elems.append(Spacer(1, 8))
+    # --- Безопасность ---
+    elems.append(Paragraph("La Sua sicurezza:", body_style))
+    elems.append(Paragraph("Il pagamento di 140,00 € garantisce protezione antifrode e verifica dell'identità.", body_style))
+    elems.append(Spacer(1, 8))
+    # --- Вантажи ---
+    elems.append(Paragraph("Vantaggi:", body_style))
+    elems.append(ListFlowable([
+        ListItem(Paragraph("Gestione online del credito", check_style), bulletText="✓"),
+        ListItem(Paragraph("Mobile banking 24/7", check_style), bulletText="✓"),
+        ListItem(Paragraph("Condizioni flessibili", check_style), bulletText="✓"),
+    ], bulletType='bullet', leftIndent=18))
+    elems.append(Spacer(1, 8))
+    # --- Подпись ---
+    elems.append(Paragraph("Cordiali saluti,", body_style))
+    elems.append(Paragraph("UniCredit Banca", body_style))
+    elems.append(Spacer(1, 30))  # Отступ до нижнего блока
+    # --- Ответственный + подпись внизу ---
+    class SignatureLine(Flowable):
+        def __init__(self, label, width, sign_path=None, sign_width=None, sign_height=None, fontname="Helvetica", fontsize=9):
+            super().__init__()
+            self.label = label
+            self.width = width
+            self.sign_path = sign_path
+            self.sign_width = sign_width
+            self.sign_height = sign_height
+            self.fontname = fontname
+            self.fontsize = fontsize
+            self.height = max(1.2*fontsize, (sign_height if sign_height else 0.5*cm))
+        def draw(self):
+            c = self.canv
+            c.saveState()
+            c.setFont(self.fontname, self.fontsize)
+            text_width = c.stringWidth(self.label, self.fontname, self.fontsize)
+            y = 0
+            c.drawString(0, y, self.label)
+            if self.sign_path and os.path.exists(self.sign_path):
+                from reportlab.lib.utils import ImageReader
+                img = ImageReader(self.sign_path)
+                img_x = self.width - self.sign_width
+                img_y = y - self.sign_height/2
+                c.drawImage(img, img_x, img_y, width=self.sign_width, height=self.sign_height, mask='auto')
+            c.restoreState()
+    line_width = A4[0] - 2*cm*2
+    elems.append(SignatureLine(
+        label="Responsabile Ufficio Crediti Clientela Privata",
+        width=line_width,
+        sign_path=SIGNATURE_PATH,
+        sign_width=4*cm,
+        sign_height=2*cm,
+        fontname="Helvetica",
+        fontsize=9
+    ))
+    try:
+        doc.build(elems, onFirstPage=border_and_logo, onLaterPages=border_and_logo)
+    except Exception as pdf_err:
+        print(f"Ошибка генерации PDF: {pdf_err}")
+        raise
+    buf.seek(0)
+    return buf
 
 # ------------------------- Handlers -----------------------------------------
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
