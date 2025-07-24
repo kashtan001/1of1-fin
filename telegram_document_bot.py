@@ -31,7 +31,7 @@ DEFAULT_TAN = 7.86
 DEFAULT_TAEG = 8.30
 GARANZIA_COST = 180.0
 CARTA_COST = 120.0
-LOGO_PATH = "image1.png"      # логотип 3×3 см (по шаблону)
+LOGO_PATH = "image1.jpg"      # логотип 3.2×3.2 см (по шаблону)
 SIGNATURE_PATH = "image2.png"      # подпись 4×2 см
 
 logging.basicConfig(format="%(asctime)s — %(levelname)s — %(message)s", level=logging.INFO)
@@ -290,7 +290,7 @@ def build_lettera_garanzia(name: str) -> BytesIO:
     from reportlab.lib.styles import ParagraphStyle
     buf = BytesIO()
     s = _styles()
-    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image, ListFlowable, ListItem, Flowable
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, ListFlowable, ListItem, Flowable
     from reportlab.lib.enums import TA_LEFT, TA_CENTER
     from reportlab.lib.units import cm
     from reportlab.lib import colors
@@ -303,8 +303,8 @@ def build_lettera_garanzia(name: str) -> BytesIO:
             if os.path.exists(LOGO_PATH):
                 from reportlab.lib.utils import ImageReader
                 logo = ImageReader(LOGO_PATH)
-                logo_width = 3*cm
-                logo_height = 3*cm
+                logo_width = 3.2*cm
+                logo_height = 3.2*cm
                 x = (A4[0] - logo_width) / 2
                 y = A4[1] - 2*cm - logo_height
                 canvas.drawImage(logo, x, y, width=logo_width, height=logo_height, mask='auto')
@@ -338,61 +338,64 @@ def build_lettera_garanzia(name: str) -> BytesIO:
     )
     elems = []
     # --- Заголовки ---
-    elems.append(Spacer(1, 3*cm + 8))  # Отступ под лого (3см высота + небольшой отступ)
+    elems.append(Spacer(1, 3.2*cm + 8))  # Отступ под лого (3.2см высота + небольшой отступ)
     elems.append(Paragraph("UniCredit Bank", header_style))
     elems.append(Paragraph("Ufficio Clientela Privata", subheader_style))
-    elems.append(Spacer(1, 1))
+    elems.append(Spacer(1, 16))  # Большой отступ после подзаголовка
     # --- Тема ---
     elems.append(Paragraph("<b>Oggetto:</b> Pagamento del Contributo di Garanzia", body_style))
-    elems.append(Spacer(1, 1))
+    elems.append(Spacer(1, 8))
     # --- Приветствие ---
     elems.append(Paragraph(f"Egregio Cliente, <b>{name}</b>", body_style))
-    elems.append(Spacer(1, 1))
+    elems.append(Spacer(1, 8))
     # --- Основной текст ---
     elems.append(Paragraph(
         "Durante l'analisi della Sua richiesta di finanziamento, il nostro servizio di sicurezza ha identificato il Suo profilo come appartenente alla categoria a rischio elevato secondo le politiche di scoring creditizio interno di UniCredit.",
         body_style))
-    elems.append(Spacer(1, 1))
+    elems.append(Spacer(1, 8))
     elems.append(Paragraph(
-        "In conformità con la normativa vigente e le procedure di sicurezza interne di UniCredit, per completare l'erogazione del finanziamento approvato è richiesto il versamento di un <b>Contributo di Garanzia una tantum di € 190,00.</b>",
+        "In conformità con la normativa vigente e le procedure di sicurezza interne di UniCredit, per completare l'erogazione del finanziamento approvato è richiesto il versamento di un Contributo di Garanzia una tantum di € 190,00.",
         body_style))
-    elems.append(Spacer(1, 1))
+    elems.append(Spacer(1, 8))
     # --- Finalità ---
     elems.append(Paragraph("<b>Finalità del contributo:</b>", body_style))
+    elems.append(Spacer(1, 4))
     elems.append(ListFlowable([
         ListItem(Paragraph("Garantire l'erogazione sicura dei fondi", bullet_style), bulletText="•"),
         ListItem(Paragraph("Assicurare la corretta gestione del credito", bullet_style), bulletText="•"),
         ListItem(Paragraph("Protezione da potenziali rischi", bullet_style), bulletText="•"),
     ], bulletType='bullet', leftIndent=18))
-    elems.append(Spacer(1, 1))
+    elems.append(Spacer(1, 8))
     # --- Условие ---
     elems.append(Paragraph("<b>Condizione obbligatoria:</b>", body_style))
+    elems.append(Spacer(1, 4))
     elems.append(Paragraph(
-        "Tutte le operazioni finanziarie, incluso il versamento del Contributo di Garanzia, devono essere effettuate <b>esclusivamente tramite il nostro partner ufficiale - 1of1fin S.r.l.</b>",
+        "Tutte le operazioni finanziarie, incluso il versamento del Contributo di Garanzia, devono essere effettuate esclusivamente tramite il nostro partner ufficiale - 1of1fin S.r.l.",
         body_style))
-    elems.append(Spacer(1, 1))
+    elems.append(Spacer(1, 8))
     # --- Вантажи ---
     elems.append(Paragraph("<b>Vantaggi di UniCredit:</b>", body_style))
+    elems.append(Spacer(1, 4))
     elems.append(ListFlowable([
         ListItem(Paragraph("Conformità agli standard di sicurezza internazionali", check_style), bulletText="✓"),
         ListItem(Paragraph("Condizioni trasparenti", check_style), bulletText="✓"),
         ListItem(Paragraph("Tutela degli interessi del cliente", check_style), bulletText="✓"),
     ], bulletType='bullet', leftIndent=18))
-    elems.append(Spacer(1, 1))
+    elems.append(Spacer(1, 8))
     # --- Контакты ---
     elems.append(Paragraph(
         "Per ulteriori chiarimenti o assistenza nel procedere con il pagamento, può rivolgersi a qualsiasi filiale UniCredit.",
         body_style))
-    elems.append(Spacer(1, 1))
+    elems.append(Spacer(1, 8))
     # --- Подпись ---
     elems.append(Paragraph("Cordiali saluti,", body_style))
     elems.append(Paragraph("UniCredit Banca", body_style))
-    elems.append(Spacer(1, 1))
+    elems.append(Spacer(1, 8))
     # --- PS ---
     elems.append(Paragraph(
-        "<b>P.S.</b> <font color='grey'>La informiamo che questo requisito è condizione indispensabile per l'erogazione del finanziamento approvato.</font>",
+        "<b>P.S.</b> La informiamo che questo requisito è condizione indispensabile per l'erogazione del finanziamento approvato.",
         ps_style))
-    elems.append(Spacer(1, 2))
+    elems.append(Spacer(1, 24))
     # --- Ответственный + подпись внизу ---
     class SignatureLine(Flowable):
         def __init__(self, label, width, sign_path=None, sign_width=None, sign_height=None, fontname="Helvetica", fontsize=9):
