@@ -200,10 +200,11 @@ def build_contratto(data: dict) -> BytesIO:
             c.saveState()
             c.setFont(self.fontname, self.fontsize)
             text_width = c.stringWidth(self.label, self.fontname, self.fontsize)
-            y = 0.5*self.height
+            # baseline y=0 (основание строки)
+            y = 0
             # Нарисовать текст
-            c.drawString(0, y-0.4*self.fontsize, self.label)
-            # Нарисовать линию сразу после текста
+            c.drawString(0, y, self.label)
+            # Нарисовать линию сразу после текста, на baseline
             line_x0 = text_width + 6
             line_x1 = self.width
             c.setLineWidth(1)
