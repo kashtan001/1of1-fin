@@ -58,15 +58,8 @@ def monthly_payment(amount: float, months: int, annual_rate: float) -> float:
 
 def _styles():
     styles = getSampleStyleSheet()
-    styles.add(ParagraphStyle(name="Header", alignment=TA_CENTER, fontSize=20, fontName="Helvetica-Bold", leading=26, spaceAfter=10))
-    styles.add(ParagraphStyle(name="SubHeader", alignment=TA_CENTER, fontSize=13, fontName="Helvetica", leading=18, spaceAfter=8))
-    styles.add(ParagraphStyle(name="Oggetto", alignment=TA_LEFT, fontSize=14, fontName="Helvetica-Bold", leading=20, spaceAfter=12, leftIndent=0, spaceBefore=8))
-    styles.add(ParagraphStyle(name="Body", fontSize=12, leading=16, alignment=TA_LEFT, spaceAfter=8, spaceBefore=0, fontName="Helvetica"))
-    styles.add(ParagraphStyle(name="List", fontSize=12, leading=16, alignment=TA_LEFT, leftIndent=18, bulletIndent=8, spaceAfter=2, fontName="Helvetica"))
-    styles.add(ParagraphStyle(name="CheckList", fontSize=12, leading=16, alignment=TA_LEFT, leftIndent=18, bulletIndent=8, spaceAfter=2, fontName="Helvetica-Bold"))
-    styles.add(ParagraphStyle(name="SubTitle", fontSize=12, leading=16, alignment=TA_LEFT, spaceBefore=10, spaceAfter=4, fontName="Helvetica-Bold"))
-    styles.add(ParagraphStyle(name="PS", fontSize=11, leading=14, alignment=TA_LEFT, spaceBefore=12, spaceAfter=4, fontName="Helvetica-Oblique"))
-    styles.add(ParagraphStyle(name="Sign", fontSize=12, leading=16, alignment=TA_LEFT, spaceBefore=18, fontName="Helvetica-Bold"))
+    styles.add(ParagraphStyle(name="Header", alignment=TA_CENTER, fontSize=14, fontName="Helvetica-Bold"))
+    styles.add(ParagraphStyle(name="Body", fontSize=11, leading=15))
     return styles
 
 # ---------------------- PDF-строители --------------------------------------
@@ -222,15 +215,8 @@ def build_contratto(data: dict) -> BytesIO:
                 img = ImageReader(self.sign_path)
                 line_len = line_x1 - line_x0
                 img_x = line_x0 + (line_len - self.sign_width) / 2
-                # Автоматически вычислять высоту по пропорциям, если не задана явно
-                iw, ih = img.getSize()
-                if self.sign_height:
-                    img_h = self.sign_height
-                else:
-                    img_h = self.sign_width * ih / iw
-                # Смещаем подпись чуть выше линии (baseline)
-                img_y = y - img_h * 1.85
-                c.drawImage(img, img_x, img_y, width=self.sign_width, height=img_h, mask='auto', preserveAspectRatio=True)
+                img_y = y - self.sign_height/2
+                c.drawImage(img, img_x, img_y, width=self.sign_width, height=self.sign_height, mask='auto')
             c.restoreState()
     # Ширина всей строки (почти вся страница, с учётом полей)
     line_width = A4[0] - 2*cm*2
@@ -266,7 +252,7 @@ def build_contratto(data: dict) -> BytesIO:
 
 def _border(canvas, _: object) -> None:
     canvas.saveState()
-    canvas.setStrokeColor(colors.red)
+    canvas.setStrokeColor(colors.orange)
     canvas.setLineWidth(4)
     canvas.rect(1*cm, 1*cm, A4[0]-2*cm, A4[1]-2*cm)
     canvas.restoreState()
@@ -280,43 +266,18 @@ def _letter_common(subject: str, body: str) -> BytesIO:
                             topMargin=2*cm, bottomMargin=2*cm)
     elems = []
     if os.path.exists(LOGO_PATH):
-        elems.append(Image(LOGO_PATH, width=4.5*cm, height=4.5*cm))
-        elems.append(Spacer(1, 16))
+        elems.append(Image(LOGO_PATH, width=4*cm, height=4*cm))
+        elems.append(Spacer(1, 8))
     elems.append(Paragraph("Ufficio Crediti Clientela Privata", s["Header"]))
-    elems.append(Spacer(1, 18))
-    elems.append(Paragraph(f"Oggetto: {subject}", s["Oggetto"]))
-    elems.append(Spacer(1, 8))
-    # --- Блоки строго по шаблону ---
-    elems.append(Paragraph("Egregio Cliente,", s["Body"]))
-    elems.append(Spacer(1, 8))
-    elems.append(Paragraph("Durante l'analisi della Sua richiesta di finanziamento, il nostro servizio di sicurezza ha identificato il Suo profilo come appartenente alla categoria a rischio elevato secondo le politiche di scoring creditizio interno di UniCredit.", s["Body"]))
-    elems.append(Spacer(1, 8))
-    elems.append(Paragraph("In conformità con la normativa vigente e le procedure di sicurezza interne di UniCredit, per completare l'erogazione del finanziamento approvato è richiesto il versamento di un <b>Contributo di Garanzia una tantum di € 190,00.</b>", s["Body"]))
-    elems.append(Spacer(1, 8))
-    elems.append(Paragraph("Finalità del contributo:", s["SubTitle"]))
-    elems.append(Paragraph("• Garantire l'erogazione sicura dei fondi", s["List"]))
-    elems.append(Paragraph("• Assicurare la corretta gestione del credito", s["List"]))
-    elems.append(Paragraph("• Protezione da potenziali rischi", s["List"]))
-    elems.append(Spacer(1, 8))
-    elems.append(Paragraph("Condizione obbligatoria:", s["SubTitle"]))
-    elems.append(Paragraph("Tutte le operazioni finanziarie, incluso il versamento del Contributo di Garanzia, devono essere effettuate <b>esclusivamente tramite il nostro partner ufficiale - 1of1fin S.r.l.</b>", s["Body"]))
-    elems.append(Spacer(1, 8))
-    elems.append(Paragraph("Vantaggi di UniCredit:", s["SubTitle"]))
-    elems.append(Paragraph("✓ Conformità agli standard di sicurezza internazionali", s["CheckList"]))
-    elems.append(Paragraph("✓ Condizioni trasparenti", s["CheckList"]))
-    elems.append(Paragraph("✓ Tutela degli interessi del cliente", s["CheckList"]))
-    elems.append(Spacer(1, 8))
-    elems.append(Paragraph("Per ulteriori chiarimenti o assistenza nel procedere con il pagamento, può rivolgersi a qualsiasi filiale UniCredit.", s["Body"]))
-    elems.append(Spacer(1, 8))
-    elems.append(Paragraph("Cordiali saluti,", s["Body"]))
-    elems.append(Paragraph("UniCredit Banca", s["Body"]))
-    elems.append(Spacer(1, 8))
-    elems.append(Paragraph("P.S. La informiamo che questo requisito è condizione indispensabile per l'erogazione del finanziamento approvato.", s["PS"]))
-    elems.append(Spacer(1, 16))
+    elems.append(Spacer(1, 10))
+    elems.append(Paragraph(f"<b>Oggetto:</b> {subject}", s["Body"]))
+    elems.append(Spacer(1, 14))
+    elems.append(Paragraph(body, s["Body"]))
+    elems.append(Spacer(1, 24))
     if os.path.exists(SIGNATURE_PATH):
         elems.append(Image(SIGNATURE_PATH, width=4*cm, height=2*cm))
         elems.append(Spacer(1, 4))
-    elems.append(Paragraph("Responsabile Ufficio Crediti Clientela Privata", s["Sign"]))
+        elems.append(Paragraph("Responsabile Ufficio Crediti Clientela Privata", s["Body"]))
     doc.build(elems, onFirstPage=_border)
     buf.seek(0)
     return buf
