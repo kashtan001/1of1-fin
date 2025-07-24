@@ -208,7 +208,8 @@ def build_contratto(data: dict) -> BytesIO:
     uc_text = "Firma del rappresentante UniCredit:"
     cl_text = "Firma del Cliente:"
     sign_table = Table([
-        [Paragraph(uc_text, s["Body"]), LineWithSignature(11*cm, sign_path="image2.png", sign_width=3.75*cm, sign_height=1.8*cm)]
+        [Paragraph(uc_text, s["Body"]), LineWithSignature(11*cm, sign_path="image2.png", sign_width=3.75*cm, sign_height=1.8*cm)],
+        [Paragraph(cl_text, s["Body"]), LineWithSignature(11*cm)]
     ], colWidths=[7*cm, 11*cm])
     sign_table.setStyle(TableStyle([
         ("VALIGN", (0,0), (-1,-1), "MIDDLE"),
