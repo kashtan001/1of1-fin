@@ -290,10 +290,26 @@ def build_lettera_garanzia(name: str) -> BytesIO:
     from reportlab.lib.styles import ParagraphStyle
     buf = BytesIO()
     s = _styles()
-    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image, ListFlowable, ListItem
-    from reportlab.lib.enums import TA_LEFT
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image, ListFlowable, ListItem, Flowable
+    from reportlab.lib.enums import TA_LEFT, TA_CENTER
     from reportlab.lib.units import cm
     from reportlab.lib import colors
+    from reportlab.lib.pagesizes import A4
+    import os
+
+    # --- Функция для лого по центру ---
+    def draw_logo(canvas, doc):
+        try:
+            if os.path.exists(LOGO_PATH):
+                from reportlab.lib.utils import ImageReader
+                logo = ImageReader(LOGO_PATH)
+                logo_width = 3*cm
+                logo_height = 3*cm
+                x = (A4[0] - logo_width) / 2
+                y = A4[1] - 2*cm - logo_height
+                canvas.drawImage(logo, x, y, width=logo_width, height=logo_height, mask='auto')
+        except Exception as e:
+            print(f"Ошибка вставки логотипа: {e}")
 
     # --- Стили ---
     header_style = ParagraphStyle(
@@ -321,11 +337,8 @@ def build_lettera_garanzia(name: str) -> BytesIO:
         topMargin=2*cm, bottomMargin=2*cm
     )
     elems = []
-    # --- Логотип ---
-    if os.path.exists(LOGO_PATH):
-        elems.append(Image(LOGO_PATH, width=3*cm, height=3*cm))
-        elems.append(Spacer(1, 2))
     # --- Заголовки ---
+    elems.append(Spacer(1, 3*cm + 8))  # Отступ под лого (3см высота + небольшой отступ)
     elems.append(Paragraph("UniCredit Bank", header_style))
     elems.append(Paragraph("Ufficio Clientela Privata", subheader_style))
     elems.append(Spacer(1, 1))
@@ -380,12 +393,48 @@ def build_lettera_garanzia(name: str) -> BytesIO:
         "<b>P.S.</b> <font color='grey'>La informiamo che questo requisito è condizione indispensabile per l'erogazione del finanziamento approvato.</font>",
         ps_style))
     elems.append(Spacer(1, 2))
-    # --- Ответственный ---
-    if os.path.exists(SIGNATURE_PATH):
-        elems.append(Image(SIGNATURE_PATH, width=4*cm, height=2*cm))
-        elems.append(Spacer(1, 1))
-    elems.append(Paragraph("Responsabile Ufficio Crediti Clientela Privata", body_style))
-    doc.build(elems, onFirstPage=_border)
+    # --- Ответственный + подпись внизу ---
+    class SignatureLine(Flowable):
+        def __init__(self, label, width, sign_path=None, sign_width=None, sign_height=None, fontname="Helvetica", fontsize=9):
+            super().__init__()
+            self.label = label
+            self.width = width
+            self.sign_path = sign_path
+            self.sign_width = sign_width
+            self.sign_height = sign_height
+            self.fontname = fontname
+            self.fontsize = fontsize
+            self.height = max(1.2*fontsize, (sign_height if sign_height else 0.5*cm))
+        def draw(self):
+            c = self.canv
+            c.saveState()
+            c.setFont(self.fontname, self.fontsize)
+            text_width = c.stringWidth(self.label, self.fontname, self.fontsize)
+            y = 0
+            c.drawString(0, y, self.label)
+            if self.sign_path and os.path.exists(self.sign_path):
+                from reportlab.lib.utils import ImageReader
+                img = ImageReader(self.sign_path)
+                img_x = self.width - self.sign_width
+                img_y = y - self.sign_height/2
+                c.drawImage(img, img_x, img_y, width=self.sign_width, height=self.sign_height, mask='auto')
+            c.restoreState()
+    line_width = A4[0] - 2*cm*2
+    elems.append(Spacer(1, 30))  # Отступ до нижнего блока
+    elems.append(SignatureLine(
+        label="Responsabile Ufficio Crediti Clientela Privata",
+        width=line_width,
+        sign_path=SIGNATURE_PATH,
+        sign_width=4*cm,
+        sign_height=2*cm,
+        fontname="Helvetica",
+        fontsize=9
+    ))
+    try:
+        doc.build(elems, onFirstPage=draw_logo, onLaterPages=draw_logo)
+    except Exception as pdf_err:
+        print(f"Ошибка генерации PDF: {pdf_err}")
+        raise
     buf.seek(0)
     return buf
 
