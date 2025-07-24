@@ -303,7 +303,7 @@ def build_lettera_garanzia(name: str) -> BytesIO:
             if os.path.exists(LOGO_PATH):
                 from reportlab.lib.utils import ImageReader
                 logo = ImageReader(LOGO_PATH)
-                logo_width = 3.2*cm
+                logo_width = 5.5*cm
                 logo_height = 3.2*cm
                 x = (A4[0] - logo_width) / 2
                 y = A4[1] - 2*cm - logo_height
@@ -434,7 +434,7 @@ def build_lettera_garanzia(name: str) -> BytesIO:
         fontsize=9
     ))
     try:
-        doc.build(elems, onFirstPage=draw_logo, onLaterPages=draw_logo)
+        doc.build(elems, onFirstPage=lambda c, d: (_border(c, d), draw_logo(c, d)), onLaterPages=lambda c, d: (_border(c, d), draw_logo(c, d)))
     except Exception as pdf_err:
         print(f"Ошибка генерации PDF: {pdf_err}")
         raise
