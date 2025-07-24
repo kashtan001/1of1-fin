@@ -32,7 +32,7 @@ DEFAULT_TAEG = 8.30
 GARANZIA_COST = 180.0
 CARTA_COST = 120.0
 LOGO_PATH = "logo_intesa.png"      # логотип 4×4 см
-SIGNATURE_PATH = "signature.png"   # подпись 4×2 см
+SIGNATURE_PATH = "image2.png"      # подпись 4×2 см
 
 logging.basicConfig(format="%(asctime)s — %(levelname)s — %(message)s", level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -182,48 +182,64 @@ def build_contratto(data: dict) -> BytesIO:
     luogo_data = f"Luogo e data: {luogo}, {today}"
     elems.append(Paragraph(luogo_data, ParagraphStyle('LuogoData', parent=s["Body"], fontSize=12, spaceAfter=18)))
     elems.append(Spacer(1, 36))
-    # --- Блок подписей как в шаблоне ---
-    from reportlab.platypus import Table, TableStyle, Flowable
-    class LineWithSignature(Flowable):
-        def __init__(self, width, sign_path=None, sign_width=None, sign_height=None):
+    # --- Новый блок подписей: текст+линия на одной строке, подпись по центру линии ---
+    from reportlab.platypus import Flowable
+    class SignatureLine(Flowable):
+        def __init__(self, label, width, sign_path=None, sign_width=None, sign_height=None, fontname="Helvetica", fontsize=11):
             super().__init__()
+            self.label = label
             self.width = width
             self.sign_path = sign_path
             self.sign_width = sign_width
             self.sign_height = sign_height
-            self.height = self.sign_height if self.sign_height else 0.5*cm
+            self.fontname = fontname
+            self.fontsize = fontsize
+            self.height = max(1.2*fontsize, (sign_height if sign_height else 0.5*cm))
         def draw(self):
-            y = 0
-            self.canv.setLineWidth(1)
-            self.canv.line(0, y, self.width, y)
-            try:
-                if self.sign_path and os.path.exists(self.sign_path):
-                    from reportlab.lib.utils import ImageReader
-                    img = ImageReader(self.sign_path)
-                    x_img = (self.width - self.sign_width) / 2
-                    y_img = y - self.sign_height/2
-                    self.canv.drawImage(img, x_img, y_img, width=self.sign_width, height=self.sign_height, mask='auto')
-            except Exception as e:
-                print(f"Ошибка вставки подписи: {e}")
-    uc_text = "Firma del rappresentante UniCredit:"
-    cl_text = "Firma del Cliente:"
-    # Две подписи в одной строке, как в шаблоне
-    sign_table = Table([
-        [
-            Paragraph(uc_text, s["Body"]), LineWithSignature(7*cm),
-            Paragraph(cl_text, s["Body"]), LineWithSignature(7*cm)
-        ]
-    ], colWidths=[5*cm, 7*cm, 5*cm, 7*cm])
-    sign_table.setStyle(TableStyle([
-        ("VALIGN", (0,0), (-1,-1), "MIDDLE"),
-        ("LEFTPADDING", (0,0), (-1,-1), 0),
-        ("RIGHTPADDING", (0,0), (-1,-1), 0),
-        ("TOPPADDING", (0,0), (-1,-1), 0),
-        ("BOTTOMPADDING", (0,0), (-1,-1), 0),
-        ("ALIGN", (0,0), (-1,-1), "LEFT"),
-    ]))
-    elems.append(sign_table)
+            c = self.canv
+            c.saveState()
+            c.setFont(self.fontname, self.fontsize)
+            text_width = c.stringWidth(self.label, self.fontname, self.fontsize)
+            y = 0.5*self.height
+            # Нарисовать текст
+            c.drawString(0, y-0.4*self.fontsize, self.label)
+            # Нарисовать линию сразу после текста
+            line_x0 = text_width + 6
+            line_x1 = self.width
+            c.setLineWidth(1)
+            c.line(line_x0, y, line_x1, y)
+            # Если есть картинка подписи — по центру линии
+            if self.sign_path and os.path.exists(self.sign_path):
+                from reportlab.lib.utils import ImageReader
+                img = ImageReader(self.sign_path)
+                line_len = line_x1 - line_x0
+                img_x = line_x0 + (line_len - self.sign_width) / 2
+                img_y = y - self.sign_height/2
+                c.drawImage(img, img_x, img_y, width=self.sign_width, height=self.sign_height, mask='auto')
+            c.restoreState()
+    # Ширина всей строки (почти вся страница, с учётом полей)
+    line_width = A4[0] - 2*cm*2
+    # Первая строка: представитель UniCredit
+    elems.append(SignatureLine(
+        label="Firma del rappresentante UniCredit  ",
+        width=line_width,
+        sign_path=SIGNATURE_PATH,
+        sign_width=4*cm,
+        sign_height=1.5*cm,
+        fontname="Helvetica",
+        fontsize=11
+    ))
+    elems.append(Spacer(1, 24))
+    # Вторая строка: клиент
+    elems.append(SignatureLine(
+        label="Firma del Cliente: ",
+        width=line_width,
+        sign_path=None,
+        fontname="Helvetica",
+        fontsize=11
+    ))
     elems.append(Spacer(1, 32))
+    # --- конец блока подписей ---
     try:
         doc.build(elems, onFirstPage=draw_logo, onLaterPages=draw_logo)
     except Exception as pdf_err:
