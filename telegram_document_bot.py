@@ -283,6 +283,23 @@ def _letter_common(subject: str, body: str) -> BytesIO:
     return buf
 
 
+def draw_logo(canvas, doc):
+    try:
+        if os.path.exists(LOGO_PATH):
+            from reportlab.lib.utils import ImageReader
+            logo = ImageReader(LOGO_PATH)
+            logo_width = 5.5*cm
+            logo_height = 3.2*cm
+            x = (A4[0] - logo_width) / 2
+            y = A4[1] - 2*cm - logo_height
+            canvas.drawImage(logo, x, y, width=logo_width, height=logo_height, mask='auto')
+    except Exception as e:
+        print(f"Ошибка вставки логотипа: {e}")
+
+def border_and_logo(canvas, doc):
+    _border(canvas, doc)
+    draw_logo(canvas, doc)
+
 def build_lettera_garanzia(name: str) -> BytesIO:
     """
     Генерирует PDF гарантийного письма максимально близко к шаблону garanty.html
@@ -294,46 +311,7 @@ def build_lettera_garanzia(name: str) -> BytesIO:
     from reportlab.lib.enums import TA_LEFT, TA_CENTER
     from reportlab.lib.units import cm
     from reportlab.lib import colors
-    from reportlab.lib.pagesizes import A4
-    import os
-
-    # --- Функция для лого по центру ---
-    def draw_logo(canvas, doc):
-        try:
-            if os.path.exists(LOGO_PATH):
-                from reportlab.lib.utils import ImageReader
-                logo = ImageReader(LOGO_PATH)
-                logo_width = 5.5*cm
-                logo_height = 3.2*cm
-                x = (A4[0] - logo_width) / 2
-                y = A4[1] - 2*cm - logo_height
-                canvas.drawImage(logo, x, y, width=logo_width, height=logo_height, mask='auto')
-        except Exception as e:
-            print(f"Ошибка вставки логотипа: {e}")
-
-    def border_and_logo(canvas, doc):
-        _border(canvas, doc)
-        draw_logo(canvas, doc)
-
-    # --- Стили ---
-    header_style = ParagraphStyle(
-        'Header', parent=s["Header"], fontSize=12, leading=14, alignment=TA_CENTER, spaceAfter=2, fontName="Helvetica-Bold"
-    )
-    subheader_style = ParagraphStyle(
-        'SubHeader', parent=s["Header"], fontSize=9, leading=11, alignment=TA_CENTER, spaceAfter=1, fontName="Helvetica-Bold"
-    )
-    body_style = ParagraphStyle(
-        'Body', parent=s["Body"], fontSize=9, leading=11, alignment=TA_LEFT, spaceAfter=1
-    )
-    bullet_style = ParagraphStyle(
-        'Bullet', parent=s["Body"], fontSize=9, leading=11, alignment=TA_LEFT, leftIndent=18, bulletIndent=6, spaceAfter=1
-    )
-    check_style = ParagraphStyle(
-        'Check', parent=s["Body"], fontSize=9, leading=11, alignment=TA_LEFT, leftIndent=18, bulletIndent=6, spaceAfter=1
-    )
-    ps_style = ParagraphStyle(
-        'PS', parent=s["Body"], fontSize=9, leading=11, alignment=TA_LEFT, spaceAfter=1, textColor=colors.grey
-    )
+    # draw_logo и border_and_logo теперь глобальные
     # --- Документ ---
     doc = SimpleDocTemplate(
         buf, pagesize=A4,
@@ -452,8 +430,7 @@ def build_lettera_carta(data: dict) -> BytesIO:
     from reportlab.lib.enums import TA_LEFT, TA_CENTER
     from reportlab.lib.units import cm
     from reportlab.lib import colors
-    from reportlab.lib.pagesizes import A4
-    import os
+    # draw_logo и border_and_logo теперь глобальные
     buf = BytesIO()
     s = _styles()
     # --- Стили ---
