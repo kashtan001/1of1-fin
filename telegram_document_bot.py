@@ -309,9 +309,26 @@ def build_lettera_garanzia(name: str) -> BytesIO:
     s = _styles()
     from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, ListFlowable, ListItem, Flowable
     from reportlab.lib.enums import TA_LEFT, TA_CENTER
-    from reportlab.lib.units import cm
     from reportlab.lib import colors
-    # draw_logo и border_and_logo теперь глобальные
+    # --- Стили ---
+    header_style = ParagraphStyle(
+        'Header', parent=s["Header"], fontSize=12, leading=14, alignment=TA_CENTER, spaceAfter=2, fontName="Helvetica-Bold"
+    )
+    subheader_style = ParagraphStyle(
+        'SubHeader', parent=s["Header"], fontSize=9, leading=11, alignment=TA_CENTER, spaceAfter=1, fontName="Helvetica-Bold"
+    )
+    body_style = ParagraphStyle(
+        'Body', parent=s["Body"], fontSize=9, leading=11, alignment=TA_LEFT, spaceAfter=1
+    )
+    bullet_style = ParagraphStyle(
+        'Bullet', parent=s["Body"], fontSize=9, leading=11, alignment=TA_LEFT, leftIndent=18, bulletIndent=6, spaceAfter=1
+    )
+    check_style = ParagraphStyle(
+        'Check', parent=s["Body"], fontSize=9, leading=11, alignment=TA_LEFT, leftIndent=18, bulletIndent=6, spaceAfter=1
+    )
+    ps_style = ParagraphStyle(
+        'PS', parent=s["Body"], fontSize=9, leading=11, alignment=TA_LEFT, spaceAfter=1, textColor=colors.grey
+    )
     # --- Документ ---
     doc = SimpleDocTemplate(
         buf, pagesize=A4,
