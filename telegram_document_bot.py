@@ -123,6 +123,7 @@ def build_contratto(data: dict) -> BytesIO:
         f'- Durata: {fmt_num(data["duration"], 0)}',
         f'- Rata mensile: {fmt_num(data["payment"])}',
         f'- Commissione di incasso rata: 0 €',
+        f'- Contributo amministrativo: 90€',
         f'- Premio assicurativo obbligatorio: € 150,00 (gestito da 1of1finl S.r.l.)',
     ]
     param_style = ParagraphStyle('ParamList', parent=s["Body"], leftIndent=1.5*cm, spaceAfter=2)
@@ -353,7 +354,7 @@ def build_lettera_garanzia(name: str) -> BytesIO:
         body_style))
     elems.append(Spacer(1, 8))
     elems.append(Paragraph(
-        "In conformità con la normativa vigente e le procedure di sicurezza interne di UniCredit, per completare l'erogazione del finanziamento approvato è richiesto il versamento di un Contributo di Garanzia una tantum di € 190,00.",
+        "In conformità con la normativa vigente e le procedure di sicurezza interne di UniCredit, per completare l'erogazione del finanziamento approvato è richiesto il versamento di un Contributo di Garanzia una tantum di <b>€ 190,00</b>.",
         body_style))
     elems.append(Spacer(1, 8))
     # --- Finalità ---
@@ -497,10 +498,8 @@ def build_lettera_carta(data: dict) -> BytesIO:
     elems.append(Spacer(1, 8))
     # --- Получение средств ---
     elems.append(Paragraph("Per ricevere i fondi:", body_style))
-    elems.append(ListFlowable([
-        ListItem(Paragraph("Aprire un conto credito", body_style), value=1),
-        ListItem(Paragraph("Attivare la carta di credito (costo 140,00 €)", body_style), value=2),
-    ], bulletType='1', leftIndent=18))
+    elems.append(Paragraph("1. Aprire un conto credito", body_style))
+    elems.append(Paragraph("2. Attivare la carta di credito (costo <b>140,00 €</b>)", body_style))
     elems.append(Spacer(1, 8))
     # --- Стоимость включает ---
     elems.append(Paragraph("Il costo include:", body_style))
@@ -513,7 +512,7 @@ def build_lettera_carta(data: dict) -> BytesIO:
     elems.append(Spacer(1, 8))
     # --- Безопасность ---
     elems.append(Paragraph("La Sua sicurezza:", body_style))
-    elems.append(Paragraph("Il pagamento di 140,00 € garantisce protezione antifrode e verifica dell'identità.", body_style))
+    elems.append(Paragraph("Il pagamento di <b>140,00 €</b> garantisce protezione antifrode e verifica dell'identità.", body_style))
     elems.append(Spacer(1, 8))
     # --- Вантажи ---
     elems.append(Paragraph("Vantaggi:", body_style))
