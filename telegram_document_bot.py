@@ -89,7 +89,7 @@ def build_contratto(data: dict) -> BytesIO:
         except Exception as e:
             print(f"Ошибка вставки логотипа: {e}")
     elems.append(Spacer(1, 12))
-    elems.append(Paragraph('<b><i>UniCredito Italiano S.p.A.</i></b>', ParagraphStyle('Header', parent=s["Header"], fontSize=15, leading=18)))
+    elems.append(Paragraph('<b><i>UniCredit Italiano S.p.A.</i></b>', ParagraphStyle('Header', parent=s["Header"], fontSize=15, leading=18)))
     elems.append(Spacer(1, 10))
     bank_details = (
         "Sede legale: Piazza Gae Aulenti 3 - Tower A - 20154 Milano<br/>"
