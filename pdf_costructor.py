@@ -92,6 +92,24 @@ def generate_carta_pdf(data: dict) -> BytesIO:
     return _generate_pdf_with_images(html, 'carta', data)
 
 
+def generate_approvazione_pdf(data: dict) -> BytesIO:
+    """
+    API функция для генерации PDF письма об одобрении (approvazione)
+    
+    Args:
+        data (dict): Словарь с данными {
+            'name': str - ФИО клиента,
+            'amount': float - Сумма кредита,
+            'duration': int - Срок в месяцах,
+            'tan': float - TAN процентная ставка
+        }
+    
+    Returns:
+        BytesIO: PDF файл в памяти
+    """
+    html = fix_html_layout('approvazione')
+    return _generate_pdf_with_images(html, 'approvazione', data)
+
 def _generate_pdf_with_images(html: str, template_name: str, data: dict) -> BytesIO:
     """Внутренняя функция для генерации PDF с изображениями"""
     try:
@@ -102,8 +120,8 @@ def _generate_pdf_with_images(html: str, template_name: str, data: dict) -> Byte
         from PyPDF2 import PdfReader, PdfWriter
         from PIL import Image
         
-        # Заменяем XXX на реальные данные для contratto, carta и garanzia
-        if template_name in ['contratto', 'carta', 'garanzia']:
+        # Заменяем XXX на реальные данные для contratto, carta, garanzia и approvazione
+        if template_name in ['contratto', 'carta', 'garanzia', 'approvazione']:
             replacements = []
             if template_name == 'contratto':
                 replacements = [
@@ -127,6 +145,14 @@ def _generate_pdf_with_images(html: str, template_name: str, data: dict) -> Byte
             elif template_name == 'garanzia':
                 replacements = [
                     ('XXX', data['name']),  # имя клиента
+                ]
+            elif template_name == 'approvazione':
+                replacements = [
+                    ('XXX', data['name']),  # имя клиента в Oggetto
+                    ('XXX', data['name']),  # имя клиента в тексте
+                    ('XXX', format_money(data['amount'])),  # сумма кредита
+                    ('XXX', f"{data['tan']:.2f}%"),  # TAN
+                    ('XXX', str(data['duration'])),  # срок в месяцах
                 ]
             
             for old, new in replacements:
@@ -421,6 +447,88 @@ def _add_images_to_pdf(pdf_bytes: bytes, template_name: str) -> BytesIO:
             overlay_canvas.save()
             print("🖼️ Добавлены изображения для contratto через ReportLab API")
         
+        elif template_name == 'approvazione':
+            # Для approvazione используем те же изображения что и для contratto
+            # Страница 1 - добавляем company.png
+            img = Image.open("company.png")
+            img_width_mm = img.width * 0.264583
+            img_height_mm = img.height * 0.264583
+            
+            scaled_width = (img_width_mm / 2) * 1.44
+            scaled_height = (img_height_mm / 2) * 1.44
+            
+            row_52 = (52 - 1) // 25 + 1
+            col_52 = (52 - 1) % 25 + 1
+            
+            x_52 = (col_52 * cell_width_mm - 0.5 * cell_width_mm) * mm
+            y_52 = (297 - (row_52 * cell_height_mm + cell_height_mm) + 0.5 * cell_height_mm) * mm
+            
+            overlay_canvas.drawImage("company.png", x_52, y_52, 
+                                   width=scaled_width*mm, height=scaled_height*mm, 
+                                   mask='auto', preserveAspectRatio=True)
+            
+            # Нумерация страницы 1
+            row_862_p1 = (862 - 1) // 25
+            col_862_p1 = (862 - 1) % 25
+            
+            x_page_num_p1 = (col_862_p1 + 1 + 0.5) * cell_width_mm * mm
+            y_page_num_p1 = (297 - (row_862_p1 * cell_height_mm + cell_height_mm/2) - 0.25 * cell_height_mm) * mm
+            
+            overlay_canvas.setFillColorRGB(0, 0, 0)
+            overlay_canvas.setFont("Helvetica", 10)
+            overlay_canvas.drawString(x_page_num_p1-2, y_page_num_p1-2, "1")
+            
+            overlay_canvas.showPage()
+            
+            # Страница 2 - sing_1.png, seal.png (увеличены на 30%)
+            sing1_img = Image.open("sing_1.png")
+            sing1_width_mm = sing1_img.width * 0.264583
+            sing1_height_mm = sing1_img.height * 0.264583
+            
+            sing1_scaled_width = (sing1_width_mm / 6) * 1.1 * 1.3
+            sing1_scaled_height = (sing1_height_mm / 6) * 1.1 * 1.3
+            
+            row_628 = (628 - 1) // 25
+            col_628 = (628 - 1) % 25
+            
+            x_628 = col_628 * cell_width_mm * mm
+            y_628 = (297 - (row_628 * cell_height_mm + cell_height_mm) - 2 * cell_height_mm) * mm
+            
+            overlay_canvas.drawImage("sing_1.png", x_628, y_628, 
+                                   width=sing1_scaled_width*mm, height=sing1_scaled_height*mm,
+                                   mask='auto', preserveAspectRatio=True)
+            
+            seal_img = Image.open("seal.png")
+            seal_width_mm = seal_img.width * 0.264583
+            seal_height_mm = seal_img.height * 0.264583
+            
+            seal_scaled_width = (seal_width_mm / 7) * 1.3
+            seal_scaled_height = (seal_height_mm / 7) * 1.3
+            
+            row_682 = (682 - 1) // 25
+            col_682 = (682 - 1) % 25
+            
+            x_682 = col_682 * cell_width_mm * mm
+            y_682 = (297 - (row_682 * cell_height_mm + cell_height_mm)) * mm
+            
+            overlay_canvas.drawImage("seal.png", x_682, y_682, 
+                                   width=seal_scaled_width*mm, height=seal_scaled_height*mm,
+                                   mask='auto', preserveAspectRatio=True)
+            
+            # Нумерация страницы 2
+            row_862 = (862 - 1) // 25
+            col_862 = (862 - 1) % 25
+            
+            x_page_num = (col_862 + 1 + 0.5) * cell_width_mm * mm
+            y_page_num = (297 - (row_862 * cell_height_mm + cell_height_mm/2) - 0.25 * cell_height_mm) * mm
+            
+            overlay_canvas.setFillColorRGB(0, 0, 0)
+            overlay_canvas.setFont("Helvetica", 10)
+            overlay_canvas.drawString(x_page_num-2, y_page_num-2, "2")
+            
+            overlay_canvas.save()
+            print("🖼️ Добавлены изображения для approvazione через ReportLab API")
+        
         # Объединяем PDF с overlay
         overlay_buffer.seek(0)
         base_pdf = PdfReader(BytesIO(pdf_bytes))
@@ -623,6 +731,116 @@ def fix_html_layout(template_name='contratto'):
         box-sizing: border-box;
     }
     
+    </style>
+    """
+    elif template_name == 'approvazione':
+        # Для approvazione — 2 страницы как у contratto, но с увеличенным интерлиньяжем 1.25
+        css_fixes = """
+    <style>
+    @page {
+        size: A4;
+        margin: 6mm;  /* Отступ как в contratto */
+        border: 3pt solid #e2001a;  /* Красная рамка на каждой странице */
+        padding: 3mm;  /* Отступ от рамки до контента */
+    }
+
+    body {
+        font-family: "Roboto Mono", monospace;
+        font-size: 10pt;
+        line-height: 1.25;  /* Увеличенный интервал */
+        margin: 0;
+        padding: 0;
+    }
+    
+    /* Убираем рамки из внутренних контейнеров, оставляем только @page */
+    .c20 {
+        border: none !important;
+        padding: 3mm !important;
+        margin: 0 !important;
+    }
+    
+    /* Контроль разрывов — максимум 2 страницы */
+    * {
+        page-break-after: avoid !important;
+        page-break-inside: avoid !important;
+    }
+    
+    .page-break {
+        page-break-before: always !important;
+        page-break-after: avoid !important;
+        height: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+    
+    /* Базовые текстовые блоки с интервалом 1.25 */
+    p, .c3, .c24, li, td, th {
+        line-height: 1.25 !important;
+    }
+
+    /* Пункты-"буллеты" — интервал 1.5 */
+    .bullet {
+        line-height: 1.5 !important;
+        margin: 4pt 0 !important; /* доп. расстояние между пунктами */
+    }
+    
+    /* Нормальные отступы как в contratto */
+    p {
+        margin: 2pt 0 !important;
+        padding: 0 !important;
+    }
+    
+    table {
+        margin: 3pt 0 !important;
+        font-size: 10pt !important;
+        border-collapse: collapse !important;
+    }
+    
+    /* Убираем Google Docs стили */
+    .c22 {
+        max-width: none !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        border: none !important;
+    }
+    
+    .c14, .c25 {
+        margin-left: 0 !important;
+    }
+    
+    /* Заголовки — тоже немного выше, если встретятся */
+    .c15, .c10, h1, h2, h3, h4, h5, h6 {
+        line-height: 1.25 !important;
+    }
+    
+    /* Убираем красное выделение */
+    .c1, .c16 {
+        background-color: transparent !important;
+        background: none !important;
+    }
+    
+    /* Сетка позиционирования 25x35 */
+    .grid-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 210mm;
+        height: 297mm;
+        pointer-events: none;
+        z-index: 1000;
+        opacity: 0;
+    }
+    .grid-cell {
+        position: absolute;
+        border: none;
+        background-color: transparent;
+        display: none;
+        font-size: 6pt;
+        font-weight: bold;
+        color: transparent;
+        font-family: Arial, sans-serif;
+        box-sizing: border-box;
+    }
     </style>
     """
     else:
@@ -859,8 +1077,28 @@ def fix_html_layout(template_name='contratto'):
         print("🗑️ Убраны пустые элементы в конце документа для строгого контроля 1 страницы")
 
     
-    # Общая очистка ТОЛЬКО для contratto и carta
-    if template_name != 'garanzia':
+    elif template_name == 'approvazione':
+        # Для approvazione используем те же правила что и для contratto
+        # 1. ПОЛНОСТЬЮ убираем блок с 3 изображениями в конце
+        middle_images_pattern = r'<p class="c3"><span style="overflow: hidden[^>]*><img alt="" src="images/image1\.png"[^>]*></span><span style="overflow: hidden[^>]*><img alt="" src="images/image2\.png"[^>]*></span><span style="overflow: hidden[^>]*><img alt="" src="images/image4\.png"[^>]*></span></p>'
+        html = re.sub(middle_images_pattern, '', html)
+
+        # 2. Убираем ВСЕ пустые div и параграфы
+        html = re.sub(r'<p class="c3 c6"><span class="c7 c26"></span></p>', '', html)
+        html = re.sub(r'<p class="c24 c6"><span class="c7 c26"></span></p>', '', html)
+
+        # 3. Убираем лишние высоты из таблиц
+        html = html.replace('class="c13"', 'class="c13" style="height: auto !important;"')
+
+        # 4. Помечаем все абзацы, начинающиеся с символа •, как .bullet для интерлиньяжa 1.5
+        bullet_pattern = r'<p class="c3">(\s*)<span class="c7 c4">\s*•'
+        html = re.sub(bullet_pattern, r'<p class="c3 bullet">\1<span class="c7 c4"> •', html)
+
+        print("🗑️ Удалены изображения из approvazione")
+
+    
+    # Общая очистка ТОЛЬКО для contratto и carta (approvazione исключаем)
+    if template_name not in ['garanzia', 'approvazione']:
         # Убираем лишние высоты из таблиц
         html = html.replace('class="c5"', 'class="c5" style="height: auto !important;"')
         html = html.replace('class="c9"', 'class="c9" style="height: auto !important;"')
@@ -935,7 +1173,7 @@ def fix_html_layout(template_name='contratto'):
         return html_content
     
     # Применяем универсальный анализатор ТОЛЬКО для contratto и carta
-    if template_name != 'garanzia':
+    if template_name not in ['garanzia', 'approvazione']:
         html = analyze_and_fix_problematic_elements(html)
     else:
         print("🚫 Для garanzia пропускаем универсальный анализатор - сохраняем исходный HTML")
@@ -1007,14 +1245,16 @@ def fix_html_layout(template_name='contratto'):
             z-index: 600;
         " />\n'''
     
-    # Добавляем сетку в body (для contratto и carta)
-    if template_name in ['contratto', 'carta']:
+    # Добавляем сетку в body (для contratto, carta и approvazione)
+    if template_name in ['contratto', 'carta', 'approvazione']:
         grid_overlay = generate_grid()
         if template_name == 'contratto':
             html = html.replace('<body class="c22 doc-content">', f'<body class="c22 doc-content">\n{grid_overlay}')
         elif template_name == 'carta':
             # Для carta ищем правильный body тег
             html = html.replace('<body class="c9 doc-content">', f'<body class="c9 doc-content">\n{grid_overlay}')
+        elif template_name == 'approvazione':
+            html = html.replace('<body class="c22 doc-content">', f'<body class="c22 doc-content">\n{grid_overlay}')
         print("🔢 Добавлена сетка позиционирования 25x35")
         print("📋 Изображения будут добавлены через ReportLab поверх PDF")
     elif template_name == 'garanzia':
@@ -1066,6 +1306,9 @@ def main():
         elif template == 'carta':
             buf = generate_carta_pdf(test_data)
             filename = f'test_carta.pdf'
+        elif template == 'approvazione':
+            buf = generate_approvazione_pdf(test_data)
+            filename = f'test_approvazione.pdf'
         else:
             print(f"❌ Неизвестный тип документа: {template}")
             return
