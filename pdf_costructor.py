@@ -54,10 +54,10 @@ def generate_payment_schedule_table(amount: float, months: int, annual_rate: flo
 <table class="c18" style="width: 100%; border-collapse: collapse; margin: 10pt 0;">
 <tr class="c4" style="background-color: #b7b7b7;">
 <td class="c4" style="border: 1pt solid #666666; padding: 5pt; text-align: center; font-weight: 700;"><span class="c3">Mese</span></td>
-<td class="c4" style="border: 1pt solid #666666; padding: 5pt; text-align: center; font-weight: 700;"><span class="c3">Rata</span></td>
+<td class="c4" style="border: 1pt solid #666666; padding: 5pt; text-align: center; font-weight: 700;"><span class="c3">Pagamento</span></td>
 <td class="c4" style="border: 1pt solid #666666; padding: 5pt; text-align: center; font-weight: 700;"><span class="c3">Interessi</span></td>
-<td class="c4" style="border: 1pt solid #666666; padding: 5pt; text-align: center; font-weight: 700;"><span class="c3">Quota capitale</span></td>
-<td class="c4" style="border: 1pt solid #666666; padding: 5pt; text-align: center; font-weight: 700;"><span class="c3">Debito residuo</span></td>
+<td class="c4" style="border: 1pt solid #666666; padding: 5pt; text-align: center; font-weight: 700;"><span class="c3">Importo del prestito</span></td>
+<td class="c4" style="border: 1pt solid #666666; padding: 5pt; text-align: center; font-weight: 700;"><span class="c3">Saldo residuo</span></td>
 </tr>
 '''
     
