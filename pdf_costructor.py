@@ -112,25 +112,37 @@ def generate_signatures_table() -> str:
         print("⚠️  Не все изображения найдены для таблицы подписей/печати (sing_1.png, sing_2.png, seal.png)")
         return ''
 
-    # Таблица с печатью в первой колонке и подписями во второй и третьей
-    signatures_table = f'''
+    # Таблица 1: Печать в 1-й колонке (нижний слой)
+    seal_table = f'''
 <table class="signatures-table-base">
 <tr>
 <td style="width: 33.33%;">
 <img src="{seal_data}" alt="Sigillo Mediatore" class="seal-img" style="display: block; margin: 0 auto;" />
 </td>
+<td style="width: 33.33%;"></td>
+<td style="width: 33.33%;"></td>
+</tr>
+</table>
+'''
+
+    # Таблица 2: Подписи в 1-й и 2-й колонках (верхний слой, сдвинута вправо)
+    signatures_table = f'''
+<table class="signatures-table-overlay">
+<tr>
 <td style="width: 33.33%;">
 <img src="{sing_2_data}" alt="Firma Banca" class="sing-img" style="display: block; margin: 0 auto;" />
 </td>
 <td style="width: 33.33%;">
 <img src="{sing_1_data}" alt="Firma Mediatore" class="sing-img" style="display: block; margin: 0 auto;" />
 </td>
+<td style="width: 33.33%;"></td>
 </tr>
 </table>
 '''
 
     return f'''
 <div class="signatures-tables-wrapper">
+{seal_table}
 {signatures_table}
 </div>
 '''
@@ -268,6 +280,16 @@ def _generate_pdf_with_images(html: str, template_name: str, data: dict) -> Byte
                     print(f"📊 Таблица платежей вставлена (размер таблицы: {len(payment_schedule_table)} символов)")
                 else:
                     print("⚠️  Плейсхолдер таблицы не найден - таблица НЕ будет вставлена!")
+
+                # Добавляем класс к разделу 7 для принудительного разрыва страницы
+                import re
+                # Ищем параграф с "7. Firme" и ПРЕДЫДУЩУЮ пунктирную линию
+                html = re.sub(
+                    r'(<p class="c2">\s*<span class="c1">-{10,}</span>\s*</p>)(\s*<p class="c2">\s*<span class="c12 c6">7\. Firme</span>\s*</p>)',
+                    r'<p class="c2 section-7-firme"><span class="c1">------------------------------------------</span></p>\2',
+                    html
+                )
+                print("✅ Раздел 7 'Firme' (вместе с пунктирной линией) будет начинаться с новой страницы")
 
                 # Таблица с подписями и печатью, вставляем после 7-го пункта
                 signatures_table = generate_signatures_table()
@@ -1052,16 +1074,33 @@ def fix_html_layout(template_name='contratto'):
         border-collapse: collapse !important;
         border: none !important;
         background: transparent !important;
-        position: relative !important;
+        position: relative !important; /* Нижний слой */
+        z-index: 10 !important;
+    }
+
+    .signatures-table-overlay {
+        width: 100% !important;
+        border-collapse: collapse !important;
+        border: none !important;
+        background: transparent !important;
+        position: absolute !important; /* Верхний слой */
+        top: 0 !important;
+        left: 25mm !important; /* Сдвиг вправо на ~3 клетки */
         z-index: 20 !important;
     }
 
-    .signatures-table-base td {
+    .signatures-table-base td, .signatures-table-overlay td {
         border: none !important;
         padding: 10pt !important;
         background: transparent !important;
         vertical-align: bottom !important;
         text-align: center !important;
+    }
+
+    /* Разрыв страницы перед пунктом 7 */
+    .section-7-firme {
+        page-break-before: always !important;
+        margin-top: 0 !important;
     }
 
     /* Печать - увеличена на 30% (75mm * 1.3 = 97.5mm) */
