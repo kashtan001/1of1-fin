@@ -85,8 +85,9 @@ def generate_payment_schedule_table(amount: float, months: int, annual_rate: flo
 
 def generate_signatures_table() -> str:
     """
-    Генерирует таблицу с печатью в первой колонке и подписями во второй и третьей.
-    Печать увеличена на 30%, подписи увеличены на 60%.
+    Генерирует две наложенные друг на друга таблицы:
+    1) Таблица с подписями (sing_1.png и sing_2.png)
+    2) Таблица с печатями (seal.png), наложенная со смещением
     Изображения встраиваются как base64 для гарантированной загрузки в weasyprint.
     """
     import os
@@ -116,13 +117,13 @@ def generate_signatures_table() -> str:
 <table class="signatures-table-base">
 <tr>
 <td style="width: 33.33%;">
-<img src="{seal_data}" alt="Sigillo Mediatore" style="display: block; margin: 0 auto;" />
+<img src="{seal_data}" alt="Sigillo Mediatore" class="seal-img" style="display: block; margin: 0 auto;" />
 </td>
 <td style="width: 33.33%;">
-<img src="{sing_2_data}" alt="Firma Banca" style="display: block; margin: 0 auto;" />
+<img src="{sing_2_data}" alt="Firma Banca" class="sing-img" style="display: block; margin: 0 auto;" />
 </td>
 <td style="width: 33.33%;">
-<img src="{sing_1_data}" alt="Firma Mediatore" style="display: block; margin: 0 auto;" />
+<img src="{sing_1_data}" alt="Firma Mediatore" class="sing-img" style="display: block; margin: 0 auto;" />
 </td>
 </tr>
 </table>
@@ -516,9 +517,9 @@ def _add_images_to_pdf(pdf_bytes: bytes, template_name: str) -> BytesIO:
             overlay_canvas.drawString(x_page_num_p1-2, y_page_num_p1-2, "1")
             
             overlay_canvas.showPage()
-
+            
             # Страница 2 - добавляем только logo.png (подписи и печать теперь в табличке HTML)
-            overlay_canvas.drawImage("logo.png", x_71, y_71,
+            overlay_canvas.drawImage("logo.png", x_71, y_71, 
                                    width=logo_scaled_width*mm, height=logo_scaled_height*mm,
                                    mask='auto', preserveAspectRatio=True)
             
@@ -534,7 +535,7 @@ def _add_images_to_pdf(pdf_bytes: bytes, template_name: str) -> BytesIO:
             overlay_canvas.drawString(x_page_num-2, y_page_num-2, "2")
             
             overlay_canvas.save()
-            print("🖼️ Добавлено изображение logo.png для contratto через ReportLab API (подписи и печать теперь в табличке HTML)")
+            print("🖼️ Добавлены изображения для contratto через ReportLab API")
         
         elif template_name == 'approvazione':
             # Для approvazione используем те же изображения что и для contratto
@@ -1063,22 +1064,22 @@ def fix_html_layout(template_name='contratto'):
         text-align: center !important;
     }
 
-    .signatures-table-base td:first-child img {
-        /* Печать в первой колонке - увеличена на 30% */
+    /* Печать - увеличена на 30% (75mm * 1.3 = 97.5mm) */
+    .seal-img {
         display: block !important;
         margin: 0 auto !important;
-        max-width: 97.5mm !important; /* 75mm * 1.3 */
-        max-height: 42.25mm !important; /* 32.5mm * 1.3 */
+        max-width: 97.5mm !important;
+        max-height: 42.25mm !important;
         width: auto !important;
         height: auto !important;
     }
 
-    .signatures-table-base td:not(:first-child) img {
-        /* Подписи во второй и третьей колонках - увеличены на 60% */
+    /* Подписи - увеличены на 60% (50mm * 1.6 = 80mm) */
+    .sing-img {
         display: block !important;
         margin: 0 auto !important;
-        max-width: 80mm !important; /* 50mm * 1.6 */
-        max-height: 32mm !important; /* 20mm * 1.6 */
+        max-width: 80mm !important;
+        max-height: 32mm !important;
         width: auto !important;
         height: auto !important;
     }
