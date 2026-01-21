@@ -29,6 +29,60 @@ def monthly_payment(amount: float, months: int, annual_rate: float) -> float:
     return round(num / den, 2)
 
 
+def generate_payment_schedule_table(amount: float, months: int, annual_rate: float, payment: float) -> str:
+    """
+    Генерирует HTML таблицу графика платежей (амортизационную таблицу) для пункта 6.
+    Вставляется в HTML на место <!-- PAYMENT_SCHEDULE_TABLE_PLACEHOLDER -->.
+    """
+    monthly_rate = (annual_rate / 100) / 12
+
+    table_html = """
+<table class="c18" style="width: 100%; border-collapse: collapse; margin: 10pt 0;">
+<tr class="c7">
+<td class="c4" style="border: 1pt solid #666666; padding: 5pt; text-align: center; font-weight: 700;"><span class="c3">Mese</span></td>
+<td class="c4" style="border: 1pt solid #666666; padding: 5pt; text-align: center; font-weight: 700;"><span class="c3">Rata</span></td>
+<td class="c4" style="border: 1pt solid #666666; padding: 5pt; text-align: center; font-weight: 700;"><span class="c3">Interessi</span></td>
+<td class="c4" style="border: 1pt solid #666666; padding: 5pt; text-align: center; font-weight: 700;"><span class="c3">Capitale</span></td>
+<td class="c4" style="border: 1pt solid #666666; padding: 5pt; text-align: center; font-weight: 700;"><span class="c3">Residuo</span></td>
+</tr>
+"""
+
+    remaining = float(amount)
+    for month in range(1, months + 1):
+        interest = remaining * monthly_rate
+        principal = payment - interest
+
+        # Последний платёж — корректируем, чтобы остаток стал 0
+        if month == months:
+            principal = remaining
+            interest = payment - principal
+            remaining = 0.0
+        else:
+            remaining = remaining - principal
+
+        interest = round(interest, 2)
+        principal = round(principal, 2)
+        remaining = round(remaining, 2)
+
+        payment_str = format_money(payment)
+        interest_str = format_money(interest)
+        principal_str = format_money(principal)
+        balance_str = format_money(remaining) if remaining > 0 else "0,00"
+
+        table_html += f"""
+<tr class="c7">
+<td class="c5" style="border: 1pt solid #666666; padding: 3pt; text-align: center;"><span class="c3">{month}</span></td>
+<td class="c5" style="border: 1pt solid #666666; padding: 3pt; text-align: right;"><span class="c9 c8">&euro; {payment_str}</span></td>
+<td class="c5" style="border: 1pt solid #666666; padding: 3pt; text-align: right;"><span class="c9 c8">&euro; {interest_str}</span></td>
+<td class="c5" style="border: 1pt solid #666666; padding: 3pt; text-align: right;"><span class="c9 c8">&euro; {principal_str}</span></td>
+<td class="c5" style="border: 1pt solid #666666; padding: 3pt; text-align: right;"><span class="c9 c8">&euro; {balance_str}</span></td>
+</tr>
+"""
+
+    table_html += "</table>"
+    return table_html
+
+
 def generate_contratto_pdf(data: dict) -> BytesIO:
     """
     API функция для генерации PDF договора
@@ -134,6 +188,38 @@ def _generate_pdf_with_images(html: str, template_name: str, data: dict) -> Byte
                     ('11/06/2025', format_date()),  # дата
                     ('XXX', data['name']),  # имя в подписи
                 ]
+
+                # Пункт 6: Piano di ammortamento — подстановка плейсхолдеров и таблицы
+                monthly_rate = (data['tan'] / 100) / 12
+                total_payments = data['payment'] * data['duration']
+                overpayment = total_payments - data['amount']
+
+                html = html.replace('PAYMENT_SCHEDULE_MONTHLY_RATE', f"{monthly_rate:.12f}")
+                html = html.replace('PAYMENT_SCHEDULE_MONTHLY_PAYMENT', f"&euro; {format_money(data['payment'])}")
+                html = html.replace('PAYMENT_SCHEDULE_TOTAL_PAYMENTS', f"&euro; {format_money(total_payments)}")
+                html = html.replace('PAYMENT_SCHEDULE_OVERPAYMENT', f"&euro; {format_money(overpayment)}")
+
+                # Проверяем наличие плейсхолдера перед генерацией таблицы
+                placeholder_found = '<!-- PAYMENT_SCHEDULE_TABLE_PLACEHOLDER -->' in html
+                print(f"🔍 Плейсхолдер таблицы платежей {'✅ найден' if placeholder_found else '❌ НЕ найден'} в HTML")
+                
+                payment_schedule_table = generate_payment_schedule_table(
+                    data['amount'],
+                    data['duration'],
+                    data['tan'],
+                    data['payment'],
+                )
+                
+                if placeholder_found:
+                    html = html.replace('<!-- PAYMENT_SCHEDULE_TABLE_PLACEHOLDER -->', payment_schedule_table)
+                    print(f"📊 Таблица платежей вставлена (размер таблицы: {len(payment_schedule_table)} символов)")
+                else:
+                    print("⚠️  Плейсхолдер таблицы не найден - таблица НЕ будет вставлена!")
+                
+                # ПОСЛЕ вставки таблицы платежей - заменяем XXX на данные
+                for old, new in replacements:
+                    html = html.replace(old, new, 1)  # заменяем по одному
+                
             elif template_name == 'carta':
                 replacements = [
                     ('XXX', data['name']),  # имя клиента
