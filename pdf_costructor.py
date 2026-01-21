@@ -83,6 +83,74 @@ def generate_payment_schedule_table(amount: float, months: int, annual_rate: flo
     return table_html
 
 
+def generate_signatures_table() -> str:
+    """
+    Генерирует две наложенные друг на друга таблицы:
+    1) Таблица с подписями (sing_1.png и sing_2.png)
+    2) Таблица с печатями (seal.png), наложенная со смещением
+    Изображения встраиваются как base64 для гарантированной загрузки в weasyprint.
+    """
+    import os
+    import base64
+
+    base_dir = os.path.dirname(os.path.abspath(__file__)) if '__file__' in globals() else os.getcwd()
+
+    def image_to_base64(filename: str) -> str | None:
+        img_path = os.path.join(base_dir, filename)
+        if os.path.exists(img_path):
+            with open(img_path, 'rb') as f:
+                img_base64 = base64.b64encode(f.read()).decode('utf-8')
+            mime_type = 'image/png' if filename.lower().endswith('.png') else 'image/jpeg'
+            return f"data:{mime_type};base64,{img_base64}"
+        return None
+
+    sing_1_data = image_to_base64('sing_1.png')
+    sing_2_data = image_to_base64('sing_2.png')
+    seal_data = image_to_base64('seal.png')
+
+    if not all([sing_1_data, sing_2_data, seal_data]):
+        print("⚠️  Не все изображения найдены для таблицы подписей/печати (sing_1.png, sing_2.png, seal.png)")
+        return ''
+
+    # Таблица с подписями: sing_2 (Banca), sing_1 (Mediatore), пустая (Cliente)
+    signatures_table = f'''
+<table class="signatures-table-base">
+<tr>
+<td style="width: 33.33%;">
+<img src="{sing_2_data}" alt="Firma Banca" style="display: block; margin: 0 auto;" />
+</td>
+<td style="width: 33.33%;">
+<img src="{sing_1_data}" alt="Firma Mediatore" style="display: block; margin: 0 auto;" />
+</td>
+<td style="width: 33.33%;">
+</td>
+</tr>
+</table>
+'''
+
+    # Печать: seal на Col 2 (над sing_1 - Mediatore)
+    seal_table = f'''
+<table class="signatures-table-overlay">
+<tr>
+<td style="width: 33.33%;">
+</td>
+<td style="width: 33.33%;">
+<img src="{seal_data}" alt="Sigillo Mediatore" style="display: block; margin: 0 auto;" />
+</td>
+<td style="width: 33.33%;">
+</td>
+</tr>
+</table>
+'''
+
+    return f'''
+<div class="signatures-tables-wrapper">
+{signatures_table}
+{seal_table}
+</div>
+'''
+
+
 def generate_contratto_pdf(data: dict) -> BytesIO:
     """
     API функция для генерации PDF договора
@@ -215,6 +283,11 @@ def _generate_pdf_with_images(html: str, template_name: str, data: dict) -> Byte
                     print(f"📊 Таблица платежей вставлена (размер таблицы: {len(payment_schedule_table)} символов)")
                 else:
                     print("⚠️  Плейсхолдер таблицы не найден - таблица НЕ будет вставлена!")
+
+                # Таблица с подписями и печатью, вставляем после 7-го пункта
+                signatures_table = generate_signatures_table()
+                html = html.replace('<!-- SIGNATURES_TABLE_PLACEHOLDER -->', signatures_table)
+                print("💉 Изображения подписей внедрены через signatures_table")
                 
                 # ПОСЛЕ вставки таблицы платежей - заменяем XXX на данные
                 for old, new in replacements:
@@ -1032,6 +1105,69 @@ def fix_html_layout(template_name='contratto'):
     .c1, .c16 {
         background-color: transparent !important;
         background: none !important;
+    }
+
+    /* ТАБЛИЦА С ПОДПИСЯМИ И ПЕЧАТЬЮ */
+    .signatures-tables-wrapper {
+        position: relative !important;
+        width: 100% !important;
+        margin-top: 15pt !important;
+        margin-bottom: 10pt !important;
+        page-break-inside: avoid !important;
+    }
+
+    .signatures-table-base {
+        width: 100% !important;
+        border-collapse: collapse !important;
+        border: none !important;
+        background: transparent !important;
+        position: relative !important;
+        z-index: 20 !important;
+    }
+
+    .signatures-table-base td {
+        border: none !important;
+        padding: 10pt !important;
+        background: transparent !important;
+        vertical-align: bottom !important;
+        text-align: center !important;
+    }
+
+    .signatures-table-base td img {
+        display: block !important;
+        margin: 0 auto !important;
+        max-width: 50mm !important;
+        max-height: 20mm !important;
+        width: auto !important;
+        height: auto !important;
+    }
+
+    .signatures-table-overlay {
+        width: 100% !important;
+        border-collapse: collapse !important;
+        border: none !important;
+        background: transparent !important;
+        position: absolute !important;
+        top: -25mm !important;
+        left: 0 !important;
+        z-index: 10 !important;
+    }
+
+    .signatures-table-overlay td {
+        border: none !important;
+        padding: 10pt !important;
+        background: transparent !important;
+        vertical-align: bottom !important;
+        text-align: center !important;
+    }
+
+    .signatures-table-overlay td img {
+        display: block !important;
+        margin: 0 auto !important;
+        max-width: 75mm !important;
+        max-height: 32.5mm !important;
+        width: auto !important;
+        height: auto !important;
     }
     
     /* СЕТКА ДЛЯ ПОЗИЦИОНИРОВАНИЯ ИЗОБРАЖЕНИЙ 25x35 - НА КАЖДОЙ СТРАНИЦЕ */
