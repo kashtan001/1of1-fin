@@ -4,7 +4,7 @@
 #   /contratto     — кредитный договор
 #   /garanzia      — письмо о гарантийном взносе
 #   /carta         — письмо о выпуске карты
-#   /compensazione — компенсационное письмо (GARANZIA), бренд 1OF1 FIN
+#   /compensazione — компенсационное письмо (GARANZIA), 1OF1 FIN; файл: Lettera di compensazione_<safe>.pdf
 #   /approvazione  — письмо об одобрении кредита
 # -----------------------------------------------------------------------------
 # Интеграция с pdf_costructor.py API
@@ -136,7 +136,7 @@ async def ask_comp_indemnity(update: Update, context: ContextTypes.DEFAULT_TYPE)
         }
         buf = build_compensazione(payload)
         safe = d['name'].replace('/', '_').replace('\\', '_')[:80]
-        await update.message.reply_document(InputFile(buf, f"Compensazione_{safe}.pdf"))
+        await update.message.reply_document(InputFile(buf, f"Lettera di compensazione_{safe}.pdf"))
     except Exception as e:
         logger.error(f"Ошибка генерации compensazione: {e}")
         await update.message.reply_text(f"Ошибка создания документа: {e}")
