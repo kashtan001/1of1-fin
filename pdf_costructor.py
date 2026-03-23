@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 PDF Constructor API для генерации документов Intesa Sanpaolo
-Поддерживает: contratto, garanzia, carta, compensazione, garanzia1of1
+Поддерживает: contratto, garanzia, carta, compensazione
 """
 
 from io import BytesIO
@@ -260,11 +260,6 @@ def generate_compensazione_pdf(data: dict) -> BytesIO:
     return _generate_pdf_with_images(html, 'compensazione', data)
 
 
-def generate_garanzia1of1_pdf(data: dict) -> BytesIO:
-    html = fix_html_layout('garanzia1of1')
-    return _generate_pdf_with_images(html, 'garanzia1of1', data)
-
-
 def generate_approvazione_pdf(data: dict) -> BytesIO:
     """
     API функция для генерации PDF письма об одобрении (approvazione)
@@ -294,8 +289,8 @@ def _generate_pdf_with_images(html: str, template_name: str, data: dict) -> Byte
         from PyPDF2 import PdfReader, PdfWriter
         from PIL import Image
         
-        # Заменяем XXX на реальные данные для contratto, carta, garanzia, compensazione, garanzia1of1 и approvazione
-        if template_name in ['contratto', 'carta', 'garanzia', 'compensazione', 'garanzia1of1', 'approvazione']:
+        # Заменяем XXX на реальные данные для contratto, carta, garanzia, compensazione и approvazione
+        if template_name in ['contratto', 'carta', 'garanzia', 'compensazione', 'approvazione']:
             replacements = []
             if template_name == 'contratto':
                 replacements = [
@@ -380,7 +375,7 @@ def _generate_pdf_with_images(html: str, template_name: str, data: dict) -> Byte
                     ('XXX', f"{data['tan']:.2f}%"),  # TAN
                     ('XXX', str(data['duration'])),  # срок в месяцах
                 ]
-            elif template_name in ('compensazione', 'garanzia1of1'):
+            elif template_name == 'compensazione':
                 nm = data['name'].strip()
                 name_display = nm if nm.endswith(',') else nm + ','
                 replacements = [
@@ -510,8 +505,8 @@ def _add_images_to_pdf(pdf_bytes: bytes, template_name: str) -> BytesIO:
             overlay_canvas.save()
             print("🖼️ Добавлены изображения для garanzia через ReportLab API")
         
-        elif template_name in ('carta', 'compensazione', 'garanzia1of1'):
-            # Страница 1 - добавляем company.png и logo.png ТОЧНО КАК В CONTRATTO (carta / compensazione / garanzia1of1)
+        elif template_name in ('carta', 'compensazione'):
+            # Страница 1 - добавляем company.png и logo.png ТОЧНО КАК В CONTRATTO (carta / compensazione)
             img = Image.open("company.png")
             img_width_mm = img.width * 0.264583
             img_height_mm = img.height * 0.264583
@@ -592,7 +587,7 @@ def _add_images_to_pdf(pdf_bytes: bytes, template_name: str) -> BytesIO:
                                        mask='auto', preserveAspectRatio=True)
 
             overlay_canvas.save()
-            print("🖼️ Добавлены изображения для carta/compensazione/garanzia1of1 через ReportLab API (company.png и logo.png как в contratto, печать и подпись смещены на 7 вниз +2 вправо)")
+            print("🖼️ Добавлены изображения для carta/compensazione через ReportLab API (company.png и logo.png как в contratto, печать и подпись смещены на 7 вниз +2 вправо)")
         
         elif template_name == 'contratto':
             # Страница 1 - добавляем company.png и logo.png
@@ -874,8 +869,8 @@ def fix_html_layout(template_name='contratto'):
     
     </style>
     """
-    elif template_name in ('carta', 'compensazione', 'garanzia1of1'):
-        # Для carta, compensazione и garanzia1of1 - СТРОГО 1 СТРАНИЦА с компактной версткой
+    elif template_name in ('carta', 'compensazione'):
+        # Для carta и compensazione - СТРОГО 1 СТРАНИЦА с компактной версткой
         css_fixes = """
     <style>
     @page {
@@ -1000,8 +995,8 @@ def fix_html_layout(template_name='contratto'):
     
     </style>
     """
-        if template_name in ('compensazione', 'garanzia1of1'):
-            # compensazione / garanzia1of1: эталон GARANZIA — заголовок Arial, тело Courier; жирность c4; висячий отступ у •
+        if template_name == 'compensazione':
+            # compensazione: эталон GARANZIA — заголовок Arial, тело Courier; жирность c4; висячий отступ у •
             # База carta задаёт body Roboto Mono и * { overflow:hidden } — ниже переопределяем под эталон.
             css_fixes += """
     <style>
@@ -1398,8 +1393,8 @@ def fix_html_layout(template_name='contratto'):
         html = re.sub(signature_pattern, '', html)
         
         print("🗑️ Удалены все изображения из garanzia для предотвращения лишних страниц")
-    elif template_name in ('carta', 'compensazione', 'garanzia1of1'):
-        # Убираем ВСЕ изображения из carta/compensazione/garanzia1of1 - они создают лишние страницы
+    elif template_name in ('carta', 'compensazione'):
+        # Убираем ВСЕ изображения из carta/compensazione - они создают лишние страницы
         # Убираем логотип в начале
         logo_pattern = r'<p class="c12"><span style="overflow: hidden[^>]*><img alt="" src="images/image1\.png"[^>]*></span></p>'
         html = re.sub(logo_pattern, '', html)
@@ -1438,7 +1433,7 @@ def fix_html_layout(template_name='contratto'):
             content_before_body = re.sub(r'(<div[^>]*></div>\s*)+$', '', content_before_body)
             html = content_before_body + '\n</body></html>'
         
-        print("🗑️ Удалены все изображения из carta/compensazione/garanzia1of1 для предотвращения лишних страниц")
+        print("🗑️ Удалены все изображения из carta/compensazione для предотвращения лишних страниц")
         print("🗑️ Убраны пустые элементы в конце документа для строгого контроля 1 страницы")
         
     elif template_name == 'approvazione':
@@ -1522,13 +1517,13 @@ def fix_html_layout(template_name='contratto'):
             z-index: 600;
         " />\n'''
     
-    # Добавляем сетку в body (для contratto, carta, compensazione, garanzia1of1 и approvazione)
-    if template_name in ['contratto', 'carta', 'compensazione', 'garanzia1of1', 'approvazione']:
+    # Добавляем сетку в body (для contratto, carta, compensazione и approvazione)
+    if template_name in ['contratto', 'carta', 'compensazione', 'approvazione']:
         grid_overlay = generate_grid()
         if template_name in ['contratto', 'approvazione']:
             html = html.replace('<body class="c22 doc-content">', f'<body class="c22 doc-content">\n{grid_overlay}')
-        elif template_name in ('carta', 'compensazione', 'garanzia1of1'):
-            # Для carta / compensazione / garanzia1of1 — body c9
+        elif template_name in ('carta', 'compensazione'):
+            # Для carta / compensazione — body c9
             html = html.replace('<body class="c9 doc-content">', f'<body class="c9 doc-content">\n{grid_overlay}')
         print("🔢 Добавлена сетка позиционирования 25x35")
         print("📋 Изображения будут добавлены через ReportLab поверх PDF")
@@ -1560,7 +1555,7 @@ if __name__ == '__main__':
         pdf_bytes = HTML(string=fixed_html).write_pdf()
         
         # НАКЛАДЫВАЕМ ИЗОБРАЖЕНИЯ И СЕТКУ ЧЕРЕЗ REPORTLAB
-        if template in ['contratto', 'garanzia', 'carta', 'compensazione', 'garanzia1of1']:
+        if template in ['contratto', 'garanzia', 'carta', 'compensazione']:
             try:
                 from reportlab.pdfgen import canvas
                 from reportlab.lib.pagesizes import A4
@@ -1688,8 +1683,8 @@ if __name__ == '__main__':
                     print("🖼️ Добавлено sing_1.png в центр 593-й клетки (уменьшено в 5 раз)")
                     overlay_canvas.save()
                 
-                elif template in ('carta', 'compensazione', 'garanzia1of1'):
-                    # ДОБАВЛЯЕМ company.png и logo.png ТОЧНО КАК В CONTRATTO (carta / compensazione / garanzia1of1)
+                elif template in ('carta', 'compensazione'):
+                    # ДОБАВЛЯЕМ company.png и logo.png ТОЧНО КАК В CONTRATTO (carta / compensazione)
                     from PIL import Image
 
                     # Получаем размер изображения company.png для масштабирования
@@ -2077,13 +2072,6 @@ def main():
                 'indemnity': 250.0,
             })
             filename = 'test_compensazione.pdf'
-        elif template == 'garanzia1of1':
-            buf = generate_garanzia1of1_pdf({
-                'name': 'Cristian Fasolato,',
-                'commission': 890.0,
-                'indemnity': 4200.0,
-            })
-            filename = 'test_garanzia1of1.pdf'
         elif template == 'approvazione':
             buf = generate_approvazione_pdf(test_data)
             filename = f'test_approvazione.pdf'

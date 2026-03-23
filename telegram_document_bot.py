@@ -4,8 +4,7 @@
 #   /contratto     — кредитный договор
 #   /garanzia      — письмо о гарантийном взносе
 #   /carta         — письмо о выпуске карты
-#   /compensazione — компенсационное письмо (GARANZIA)
-#   /garanzia1of1  — GARANZIA 1OF1 FIN (как compensazione)
+#   /compensazione — компенсационное письмо (GARANZIA), бренд 1OF1 FIN
 #   /approvazione  — письмо об одобрении кредита
 # -----------------------------------------------------------------------------
 # Интеграция с pdf_costructor.py API
@@ -26,7 +25,6 @@ from pdf_costructor import (
     generate_garanzia_pdf, 
     generate_carta_pdf,
     generate_compensazione_pdf,
-    generate_garanzia1of1_pdf,
     generate_approvazione_pdf,
     monthly_payment,
     format_money
@@ -73,14 +71,10 @@ def build_compensazione(data: dict) -> BytesIO:
     return generate_compensazione_pdf(data)
 
 
-def build_garanzia1of1(data: dict) -> BytesIO:
-    return generate_garanzia1of1_pdf(data)
-
-
 # ------------------------- Handlers -----------------------------------------
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     context.user_data.clear()
-    kb = [["/контракт", "/гарантия"], ["/карта", "/одобрение"], ["/компенсация", "/гарантия1of1"]]
+    kb = [["/контракт", "/гарантия"], ["/карта", "/одобрение"], ["/компенсация"]]
     await update.message.reply_text(
         "Выберите документ:",
         reply_markup=ReplyKeyboardMarkup(kb, one_time_keyboard=True, resize_keyboard=True)
@@ -107,7 +101,7 @@ async def ask_name(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
             logger.error(f"Ошибка генерации garanzia: {e}")
             await update.message.reply_text(f"Ошибка создания документа: {e}")
         return await start(update, context)
-    if dt in ('/компенсация', '/compensazione', '/гарантия1of1', '/garanzia1of1'):
+    if dt in ('/компенсация', '/compensazione'):
         context.user_data['name'] = name
         await update.message.reply_text("Введите сумму административного взноса (комиссии), €:")
         return ASK_COMP_COMMISSION
@@ -140,17 +134,11 @@ async def ask_comp_indemnity(update: Update, context: ContextTypes.DEFAULT_TYPE)
             'commission': d['commission'],
             'indemnity': d['indemnity'],
         }
-        dt = d['doc_type']
-        if dt in ('/гарантия1of1', '/garanzia1of1'):
-            buf = build_garanzia1of1(payload)
-            prefix = "Garanzia1OF1"
-        else:
-            buf = build_compensazione(payload)
-            prefix = "Compensazione"
+        buf = build_compensazione(payload)
         safe = d['name'].replace('/', '_').replace('\\', '_')[:80]
-        await update.message.reply_document(InputFile(buf, f"{prefix}_{safe}.pdf"))
+        await update.message.reply_document(InputFile(buf, f"Compensazione_{safe}.pdf"))
     except Exception as e:
-        logger.error(f"Ошибка генерации compensazione/garanzia1of1: {e}")
+        logger.error(f"Ошибка генерации compensazione: {e}")
         await update.message.reply_text(f"Ошибка создания документа: {e}")
     return await start(update, context)
 
@@ -253,7 +241,7 @@ def main():
     conv = ConversationHandler(
         entry_points=[CommandHandler('start', start)],
         states={
-            CHOOSING_DOC: [MessageHandler(filters.Regex(r'^(/contratto|/garanzia|/carta|/approvazione|/compensazione|/garanzia1of1|/контракт|/гарантия|/карта|/одобрение|/компенсация|/гарантия1of1)$'), choose_doc)],
+            CHOOSING_DOC: [MessageHandler(filters.Regex(r'^(/contratto|/garanzia|/carta|/approvazione|/compensazione|/контракт|/гарантия|/карта|/одобрение|/компенсация)$'), choose_doc)],
             ASK_NAME:     [MessageHandler(filters.TEXT & ~filters.COMMAND, ask_name)],
             ASK_AMOUNT:   [MessageHandler(filters.TEXT & ~filters.COMMAND, ask_amount)],
             ASK_DURATION: [MessageHandler(filters.TEXT & ~filters.COMMAND, ask_duration)],
@@ -267,7 +255,7 @@ def main():
     app.add_handler(conv)
 
     print("🤖 Телеграм бот запущен!")
-    print("📋 Поддерживаемые документы: /контракт, /гарантия, /карта, /одобрение, /компенсация, /гарантия1of1 (/garanzia1of1)")
+    print("📋 Поддерживаемые документы: /контракт, /гарантия, /карта, /одобрение, /компенсация")
     print("🔧 Использует PDF конструктор из pdf_costructor.py")
     print("🌐 Подключен через прокси: 185.218.1.162:1479")
     print("⚠️  Убедитесь, что запущена только одна копия бота!")
