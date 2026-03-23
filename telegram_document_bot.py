@@ -1,9 +1,12 @@
  # telegram_document_bot.py — Telegram бот с интеграцией PDF конструктора
 # -----------------------------------------------------------------------------
-# Генератор PDF-документов Intesa Sanpaolo:
-#   /contratto — кредитный договор
-#   /garanzia  — письмо о гарантийном взносе
-#   /carta     — письмо о выпуске карты
+# Генератор PDF-документов 1OF1 FIN:
+#   /contratto     — кредитный договор
+#   /garanzia      — письмо о гарантийном взносе
+#   /carta         — письмо о выпуске карты
+#   /compensazione — компенсационное письмо (GARANZIA)
+#   /garanzia1of1  — GARANZIA 1OF1 FIN (как compensazione)
+#   /approvazione  — письмо об одобрении кредита
 # -----------------------------------------------------------------------------
 # Интеграция с pdf_costructor.py API
 # -----------------------------------------------------------------------------
@@ -11,6 +14,7 @@ import logging
 import os
 from io import BytesIO
 
+import telegram
 from telegram import Update, InputFile, ReplyKeyboardMarkup, ReplyKeyboardRemove
 from telegram.ext import (
     Application, CommandHandler, ConversationHandler, MessageHandler, ContextTypes, filters,
@@ -21,6 +25,8 @@ from pdf_costructor import (
     generate_contratto_pdf,
     generate_garanzia_pdf, 
     generate_carta_pdf,
+    generate_compensazione_pdf,
+    generate_garanzia1of1_pdf,
     generate_approvazione_pdf,
     monthly_payment,
     format_money
@@ -32,12 +38,15 @@ TOKEN = os.getenv("BOT_TOKEN", "YOUR_TOKEN_HERE")
 DEFAULT_TAN = 7.86
 DEFAULT_TAEG = 8.30
 
+# Настройки прокси
+PROXY_URL = "http://user351165:35rmsy@185.218.1.162:1479"
+
 
 logging.basicConfig(format="%(asctime)s — %(levelname)s — %(message)s", level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # ------------------ Состояния Conversation -------------------------------
-CHOOSING_DOC, ASK_NAME, ASK_AMOUNT, ASK_DURATION, ASK_TAN, ASK_TAEG = range(6)
+CHOOSING_DOC, ASK_NAME, ASK_AMOUNT, ASK_DURATION, ASK_TAN, ASK_TAEG, ASK_COMP_COMMISSION, ASK_COMP_INDEMNITY = range(8)
 
 # ---------------------- PDF-строители через API -------------------------
 def build_contratto(data: dict) -> BytesIO:
@@ -59,10 +68,19 @@ def build_approvazione(data: dict) -> BytesIO:
     """Генерация PDF письма об одобрении через API pdf_costructor"""
     return generate_approvazione_pdf(data)
 
+
+def build_compensazione(data: dict) -> BytesIO:
+    return generate_compensazione_pdf(data)
+
+
+def build_garanzia1of1(data: dict) -> BytesIO:
+    return generate_garanzia1of1_pdf(data)
+
+
 # ------------------------- Handlers -----------------------------------------
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     context.user_data.clear()
-    kb = [["/контракт", "/гарантия"], ["/карта", "/одобрение"]]
+    kb = [["/контракт", "/гарантия"], ["/карта", "/одобрение"], ["/компенсация", "/гарантия1of1"]]
     await update.message.reply_text(
         "Выберите документ:",
         reply_markup=ReplyKeyboardMarkup(kb, one_time_keyboard=True, resize_keyboard=True)
@@ -89,9 +107,53 @@ async def ask_name(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
             logger.error(f"Ошибка генерации garanzia: {e}")
             await update.message.reply_text(f"Ошибка создания документа: {e}")
         return await start(update, context)
+    if dt in ('/компенсация', '/compensazione', '/гарантия1of1', '/garanzia1of1'):
+        context.user_data['name'] = name
+        await update.message.reply_text("Введите сумму административного взноса (комиссии), €:")
+        return ASK_COMP_COMMISSION
     context.user_data['name'] = name
     await update.message.reply_text("Введите сумму (€):")
     return ASK_AMOUNT
+
+async def ask_comp_commission(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    try:
+        amt = float(update.message.text.replace('€', '').replace(',', '.').replace(' ', ''))
+    except Exception:
+        await update.message.reply_text("Неверная сумма, попробуйте снова:")
+        return ASK_COMP_COMMISSION
+    context.user_data['commission'] = round(amt, 2)
+    await update.message.reply_text("Введите сумму компенсации (индемпнитета), €:")
+    return ASK_COMP_INDEMNITY
+
+
+async def ask_comp_indemnity(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    try:
+        amt = float(update.message.text.replace('€', '').replace(',', '.').replace(' ', ''))
+    except Exception:
+        await update.message.reply_text("Неверная сумма, попробуйте снова:")
+        return ASK_COMP_INDEMNITY
+    context.user_data['indemnity'] = round(amt, 2)
+    d = context.user_data
+    try:
+        payload = {
+            'name': d['name'],
+            'commission': d['commission'],
+            'indemnity': d['indemnity'],
+        }
+        dt = d['doc_type']
+        if dt in ('/гарантия1of1', '/garanzia1of1'):
+            buf = build_garanzia1of1(payload)
+            prefix = "Garanzia1OF1"
+        else:
+            buf = build_compensazione(payload)
+            prefix = "Compensazione"
+        safe = d['name'].replace('/', '_').replace('\\', '_')[:80]
+        await update.message.reply_document(InputFile(buf, f"{prefix}_{safe}.pdf"))
+    except Exception as e:
+        logger.error(f"Ошибка генерации compensazione/garanzia1of1: {e}")
+        await update.message.reply_text(f"Ошибка создания документа: {e}")
+    return await start(update, context)
+
 
 async def ask_amount(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     try:
@@ -166,28 +228,56 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     await update.message.reply_text("Операция отменена.")
     return await start(update, context)
 
+async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Обработчик ошибок"""
+    logger.error(f"Exception while handling an update: {context.error}")
+
+    if isinstance(context.error, telegram.error.Conflict):
+        logger.error("Конфликт: другая копия бота уже работает! Убедитесь, что запущена только одна инстанс.")
+        return
+
+    # Отправляем сообщение об ошибке пользователю, если это возможно
+    if update and hasattr(update, 'effective_message'):
+        try:
+            await update.effective_message.reply_text("❌ Произошла ошибка. Попробуйте позже.")
+        except Exception:
+            pass
+
 # ---------------------------- Main -------------------------------------------
 def main():
-    app = Application.builder().token(TOKEN).build()
+    app = Application.builder().token(TOKEN).proxy_url(PROXY_URL).build()
+
+    # Добавляем обработчик ошибок
+    app.add_error_handler(error_handler)
+
     conv = ConversationHandler(
         entry_points=[CommandHandler('start', start)],
         states={
-            CHOOSING_DOC: [MessageHandler(filters.Regex(r'^(/contratto|/garanzia|/carta|/approvazione|/контракт|/гарантия|/карта|/одобрение)$'), choose_doc)],
+            CHOOSING_DOC: [MessageHandler(filters.Regex(r'^(/contratto|/garanzia|/carta|/approvazione|/compensazione|/garanzia1of1|/контракт|/гарантия|/карта|/одобрение|/компенсация|/гарантия1of1)$'), choose_doc)],
             ASK_NAME:     [MessageHandler(filters.TEXT & ~filters.COMMAND, ask_name)],
             ASK_AMOUNT:   [MessageHandler(filters.TEXT & ~filters.COMMAND, ask_amount)],
             ASK_DURATION: [MessageHandler(filters.TEXT & ~filters.COMMAND, ask_duration)],
             ASK_TAN:      [MessageHandler(filters.TEXT & ~filters.COMMAND, ask_tan)],
             ASK_TAEG:     [MessageHandler(filters.TEXT & ~filters.COMMAND, ask_taeg)],
+            ASK_COMP_COMMISSION: [MessageHandler(filters.TEXT & ~filters.COMMAND, ask_comp_commission)],
+            ASK_COMP_INDEMNITY: [MessageHandler(filters.TEXT & ~filters.COMMAND, ask_comp_indemnity)],
         },
         fallbacks=[CommandHandler('cancel', cancel), CommandHandler('start', start)],
     )
     app.add_handler(conv)
-    
+
     print("🤖 Телеграм бот запущен!")
-    print("📋 Поддерживаемые документы: /контракт, /гарантия, /карта, /одобрение (итальянские варианты тоже поддерживаются)")
+    print("📋 Поддерживаемые документы: /контракт, /гарантия, /карта, /одобрение, /компенсация, /гарантия1of1 (/garanzia1of1)")
     print("🔧 Использует PDF конструктор из pdf_costructor.py")
-    
-    app.run_polling()
+    print("🌐 Подключен через прокси: 185.218.1.162:1479")
+    print("⚠️  Убедитесь, что запущена только одна копия бота!")
+
+    try:
+        app.run_polling()
+    except KeyboardInterrupt:
+        print("🛑 Бот остановлен пользователем")
+    except Exception as e:
+        logger.error(f"Критическая ошибка при работе бота: {e}")
 
 if __name__ == '__main__':
     main()
